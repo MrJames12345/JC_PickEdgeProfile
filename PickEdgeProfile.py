@@ -23,27 +23,47 @@ EDGE_PROFILES = [
     },
     {
         "name": "CW",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 14\""
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 14\"",
+        "vsCodePath": "C:\\repo\\CasellaWeb"
     },
     {
         "name": "CK",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 12\""
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 12\"",
+        "vsCodePath": "C:\\repo\\CasellaKitchen"
     },
     {
         "name": "N-Grave",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 13\""
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 13\"",
+        "vsCodePath": "C:\\repo\\ngrave"
     },
     {
         "name": "YTMusicAutomator",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 15\""
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 15\"",
+        "vsCodePath": "C:\\repo\\YTMusicAutomator"
     },
     {
         "name": "HabitsTogether",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 9\""
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 9\"",
+        "vsCodePath": "C:\\repo\\habits_together"
     },
     {
         "name": "MoneyBoys",
         "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 10\""
+    },
+    {
+        "name": "StickerBoys",
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 16\"",
+        "vsCodePath": "C:\\repo\\StickerBoys"
+    },
+    {
+        "name": "KinoMon",
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 17\"",
+        "vsCodePath": "C:\\repo\\KinoMon"
+    },
+    {
+        "name": "AIMSInspection",
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 18\"",
+        "vsCodePath": "C:\\repo\\AIMSInspection"
     }
 ]
 
@@ -55,12 +75,26 @@ def launch_edge_profile(command):
     except Exception as e:
         print(f"Error launching Edge: {e}")
 
-def select_profile(command):
+def launch_vscode(path):
+    """Launch VS Code with the specified path"""
+    try:
+        # Launch VS Code with the specified path
+        subprocess.Popen(f'code "{path}"', shell=True)
+    except Exception as e:
+        print(f"Error launching VS Code: {e}")
+
+def select_profile(profile, ctrl_pressed=False):
     """Handle profile selection when a tile is clicked"""
     # Launch Edge with the selected profile
-    launch_thread = threading.Thread(target=launch_edge_profile, args=(command,))
+    launch_thread = threading.Thread(target=launch_edge_profile, args=(profile["command"],))
     launch_thread.daemon = True
     launch_thread.start()
+
+    # If Ctrl is pressed and vsCodePath is available, also launch VS Code
+    if ctrl_pressed and "vsCodePath" in profile and profile["vsCodePath"]:
+        vscode_thread = threading.Thread(target=launch_vscode, args=(profile["vsCodePath"],))
+        vscode_thread.daemon = True
+        vscode_thread.start()
 
     # Close the window
     root.destroy()
@@ -181,6 +215,11 @@ for i, profile in enumerate(EDGE_PROFILES):
         print(f"Error loading image: {e}")
         img = None
 
+    # Define click handler function that detects Ctrl key
+    def handle_click(event, prof=profile):
+        ctrl_pressed = bool(event.state & 0x4)  # Check if Ctrl key is pressed
+        select_profile(prof, ctrl_pressed)
+
     # Add image or placeholder
     if img:
         # Create a label with the image and center it in the tile
@@ -190,16 +229,16 @@ for i, profile in enumerate(EDGE_PROFILES):
         # Use place to center the image in the tile
         image_label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
         # Bind click event to the image
-        image_label.bind("<Button-1>", lambda e, cmd=profile["command"]: select_profile(cmd))
+        image_label.bind("<Button-1>", handle_click)
     else:
         # Create a colored rectangle as placeholder
         canvas = tk.Canvas(tile_frame, width=TILE_SIZE-20, height=TILE_SIZE-20, bg="#7ec7d2")
         canvas.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
         # Bind click event to the canvas
-        canvas.bind("<Button-1>", lambda e, cmd=profile["command"]: select_profile(cmd))
+        canvas.bind("<Button-1>", handle_click)
 
     # Bind click event to the entire tile
-    tile_frame.bind("<Button-1>", lambda e, cmd=profile["command"]: select_profile(cmd))
+    tile_frame.bind("<Button-1>", handle_click)
 
 # Calculate the window size based on the grid
 # Update the grid layout to ensure all widgets are properly sized
