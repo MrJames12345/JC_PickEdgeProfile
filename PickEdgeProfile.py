@@ -7,6 +7,7 @@ import tkinter as tk
 from tkinter import ttk
 import subprocess
 import threading
+from PIL import Image, ImageTk
 
 # Constants
 TITLE = "Edge Profile Selection"
@@ -64,6 +65,10 @@ EDGE_PROFILES = [
         "name": "AIMSInspection",
         "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 18\"",
         "vsCodePath": "C:\\repo\\AIMSInspection"
+    },
+    {
+        "name": "ClashOfMemes",
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 21\""
     }
 ]
 
