@@ -14,7 +14,8 @@ TITLE = "Edge Profile Selection"
 COLUMNS = 3
 PADDING_X = 15  # Horizontal padding between tiles
 PADDING_Y = 2   # Further reduced vertical padding between tiles
-TILE_SIZE = 180
+TILE_WIDTH = 180
+TILE_HEIGHT = 180
 
 # Edge profiles configuration
 EDGE_PROFILES = [
@@ -163,8 +164,8 @@ for i, profile in enumerate(EDGE_PROFILES):
     # Create a frame for each tile
     tile_frame = tk.Frame(
         grid_frame,
-        width=TILE_SIZE,
-        height=TILE_SIZE,
+        width=TILE_WIDTH,
+        height=TILE_HEIGHT,
         bd=0,  # No border
         relief=tk.FLAT,  # No relief
         cursor="hand2",
@@ -194,25 +195,28 @@ for i, profile in enumerate(EDGE_PROFILES):
             image_path = os.path.join(base_path, "images", "CK.png")
 
         if os.path.exists(image_path):
-            # Load the image at original size first
-            img = tk.PhotoImage(file=image_path)
+            # Load the image using PIL for high-quality resizing
+            pil_image = Image.open(image_path)
 
-            # Make the tile size larger to accommodate the image better
-            # This will prevent the image from being cut off
-            actual_tile_size = TILE_SIZE
+            # Calculate the size to fit within the tile while maintaining aspect ratio
+            # Use a slightly smaller size to ensure the image fits nicely within the tile
+            max_width = TILE_WIDTH - 20  # Leave some padding
+            max_height = TILE_HEIGHT - 20  # Leave some padding
 
-            # Use a fixed subsample factor to ensure the image is fully visible
-            # A subsample factor of 1 means the image is shown at original size
-            # Adjust this value as needed to make the image fit properly
-            subsample_factor = 1
+            # Calculate the scaling factor to maintain aspect ratio
+            width_ratio = max_width / pil_image.width
+            height_ratio = max_height / pil_image.height
+            scale_factor = min(width_ratio, height_ratio)
 
-            # Only subsample if the image is larger than the tile
-            if img.width() > TILE_SIZE or img.height() > TILE_SIZE:
-                # Calculate the subsample factor based on the image and tile sizes
-                width_factor = max(1, img.width() // TILE_SIZE + 1)
-                height_factor = max(1, img.height() // TILE_SIZE + 1)
-                subsample_factor = max(width_factor, height_factor)
-                img = img.subsample(subsample_factor)
+            # Only resize if the image is larger than the tile
+            if scale_factor < 1:
+                new_width = int(pil_image.width * scale_factor)
+                new_height = int(pil_image.height * scale_factor)
+                # Use LANCZOS for high-quality resizing
+                pil_image = pil_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
+            # Convert PIL image to tkinter PhotoImage
+            img = ImageTk.PhotoImage(pil_image)
         else:
             # Create a placeholder if image doesn't exist
             img = None
@@ -237,7 +241,7 @@ for i, profile in enumerate(EDGE_PROFILES):
         image_label.bind("<Button-1>", handle_click)
     else:
         # Create a colored rectangle as placeholder
-        canvas = tk.Canvas(tile_frame, width=TILE_SIZE-20, height=TILE_SIZE-20, bg="#7ec7d2")
+        canvas = tk.Canvas(tile_frame, width=TILE_WIDTH-20, height=TILE_HEIGHT-20, bg="#7ec7d2")
         canvas.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
         # Bind click event to the canvas
         canvas.bind("<Button-1>", handle_click)
@@ -253,8 +257,8 @@ grid_frame.update_idletasks()
 num_rows = (len(EDGE_PROFILES) + COLUMNS - 1) // COLUMNS
 
 # Calculate the window width and height based on the grid
-window_width = (TILE_SIZE + 2 * PADDING_X) * COLUMNS + 40  # Add padding for the main frame
-window_height = (TILE_SIZE + 2 * PADDING_Y) * num_rows + 50  # Adjusted for increased bottom padding
+window_width = (TILE_WIDTH + 2 * PADDING_X) * COLUMNS + 40  # Add padding for the main frame
+window_height = (TILE_HEIGHT + 2 * PADDING_Y) * num_rows + 50  # Adjusted for increased bottom padding
 
 # Set the window size
 root.geometry(f"{window_width}x{window_height}")

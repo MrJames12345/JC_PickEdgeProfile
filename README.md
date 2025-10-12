@@ -1,3 +1,3 @@
-TO see current profile number:
+To see current profile number:
 - edge://version/
 - Value under "Profile path"
