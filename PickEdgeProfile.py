@@ -89,8 +89,18 @@ def launch_vscode(path):
     except Exception as e:
         print(f"Error launching VS Code: {e}")
 
-def select_profile(profile, ctrl_pressed=False):
+def select_profile(profile, ctrl_pressed=False, alt_pressed=False):
     """Handle profile selection when a tile is clicked"""
+    # If Alt is pressed, only open VSCode (if available) and close app
+    if alt_pressed:
+        if "vsCodePath" in profile and profile["vsCodePath"]:
+            vscode_thread = threading.Thread(target=launch_vscode, args=(profile["vsCodePath"],))
+            vscode_thread.daemon = True
+            vscode_thread.start()
+        # Close the window regardless of whether VSCode was launched
+        root.destroy()
+        return
+
     # Launch Edge with the selected profile
     launch_thread = threading.Thread(target=launch_edge_profile, args=(profile["command"],))
     launch_thread.daemon = True
@@ -224,10 +234,11 @@ for i, profile in enumerate(EDGE_PROFILES):
         print(f"Error loading image: {e}")
         img = None
 
-    # Define click handler function that detects Ctrl key
+    # Define click handler function that detects Ctrl and Alt keys
     def handle_click(event, prof=profile):
         ctrl_pressed = bool(event.state & 0x4)  # Check if Ctrl key is pressed
-        select_profile(prof, ctrl_pressed)
+        alt_pressed = bool(event.state & 0x20000) or bool(event.state & 0x8)  # Check if Alt key is pressed (try both common masks)
+        select_profile(prof, ctrl_pressed, alt_pressed)
 
     # Add image or placeholder
     if img:
