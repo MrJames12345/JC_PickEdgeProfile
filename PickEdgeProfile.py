@@ -70,6 +70,10 @@ EDGE_PROFILES = [
     {
         "name": "ClashOfMemes",
         "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 21\""
+    },
+    {
+        "name": "IceDestroysMovies",
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 24\""
     }
 ]
 
@@ -237,7 +241,7 @@ for i, profile in enumerate(EDGE_PROFILES):
     # Define click handler function that detects Ctrl and Alt keys
     def handle_click(event, prof=profile):
         ctrl_pressed = bool(event.state & 0x4)  # Check if Ctrl key is pressed
-        alt_pressed = bool(event.state & 0x20000) or bool(event.state & 0x8)  # Check if Alt key is pressed (try both common masks)
+        alt_pressed = bool(event.state & 0x20000)  # Check if Alt key is pressed (use only the reliable mask)
         select_profile(prof, ctrl_pressed, alt_pressed)
 
     # Add image or placeholder
