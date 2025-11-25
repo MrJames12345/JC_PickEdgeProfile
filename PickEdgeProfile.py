@@ -19,61 +19,61 @@ TILE_HEIGHT = 180
 
 # Edge profiles configuration
 EDGE_PROFILES = [
-    {
-        "name": "Redi",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 5\""
-    },
+    # {
+    #     "name": "Redi",
+    #     "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 5\""
+    # },
     {
         "name": "CW",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 14\"",
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 2\"",
         "vsCodePath": "C:\\repo\\CasellaWeb"
     },
     {
         "name": "CK",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 12\"",
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 999\"",
         "vsCodePath": "C:\\repo\\CasellaKitchen"
     },
     {
         "name": "N-Grave",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 13\"",
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 3\"",
         "vsCodePath": "C:\\repo\\ngrave"
     },
     {
         "name": "YTMusicAutomator",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 15\"",
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 4\"",
         "vsCodePath": "C:\\repo\\YTMusicAutomator"
     },
     {
         "name": "HabitsTogether",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 9\"",
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 5\"",
         "vsCodePath": "C:\\repo\\habits_together"
     },
     {
         "name": "MoneyBoys",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 10\""
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 6\""
     },
     {
         "name": "StickerBoys",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 16\"",
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 7\"",
         "vsCodePath": "C:\\repo\\StickerBoys"
     },
-    {
-        "name": "KinoMon",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 17\"",
-        "vsCodePath": "C:\\repo\\KinoMon"
-    },
+    # {
+    #     "name": "KinoMon",
+    #     "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 999\"",
+    #     "vsCodePath": "C:\\repo\\KinoMon"
+    # },
     {
         "name": "AIMSInspection",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 18\"",
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 8\"",
         "vsCodePath": "C:\\repo\\AIMSInspection"
     },
     {
         "name": "ClashOfMemes",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 21\""
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 9\""
     },
     {
         "name": "IceDestroysMovies",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge Dev\\Application\\msedge.exe\" --profile-directory=\"Profile 24\""
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 10\""
     }
 ]
 
