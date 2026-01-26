@@ -86,10 +86,16 @@ def launch_edge_profile(command):
         print(f"Error launching Edge: {e}")
 
 def launch_antigravity(path):
-    """Launch Antigravity with the specified path"""
+    """Launch Antigravity with the specified path or workspace file if it exists"""
     try:
-        # Launch Antigravity with the specified path
-        subprocess.Popen(f'antigravity "{path}"', shell=True)
+        # Check if the workspace file exists in the folder
+        workspace_file = os.path.join(path, "#TheGoodWorkspace.code-workspace")
+        if os.path.exists(workspace_file):
+            # Open the workspace file instead of the folder
+            subprocess.Popen(f'antigravity "{workspace_file}"', shell=True)
+        else:
+            # Launch Antigravity with the specified folder path
+            subprocess.Popen(f'antigravity "{path}"', shell=True)
     except Exception as e:
         print(f"Error launching Antigravity: {e}")
 
