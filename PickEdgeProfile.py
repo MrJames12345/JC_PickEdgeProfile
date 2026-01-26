@@ -85,22 +85,22 @@ def launch_edge_profile(command):
     except Exception as e:
         print(f"Error launching Edge: {e}")
 
-def launch_vscode(path):
-    """Launch VS Code with the specified path"""
+def launch_antigravity(path):
+    """Launch Antigravity with the specified path"""
     try:
-        # Launch VS Code with the specified path
-        subprocess.Popen(f'code "{path}"', shell=True)
+        # Launch Antigravity with the specified path
+        subprocess.Popen(f'antigravity "{path}"', shell=True)
     except Exception as e:
-        print(f"Error launching VS Code: {e}")
+        print(f"Error launching Antigravity: {e}")
 
 def select_profile(profile, ctrl_pressed=False, alt_pressed=False):
     """Handle profile selection when a tile is clicked"""
     # If Alt is pressed, only open VSCode (if available) and close app
     if alt_pressed:
         if "vsCodePath" in profile and profile["vsCodePath"]:
-            vscode_thread = threading.Thread(target=launch_vscode, args=(profile["vsCodePath"],))
-            vscode_thread.daemon = True
-            vscode_thread.start()
+            antigravity_thread = threading.Thread(target=launch_antigravity, args=(profile["vsCodePath"],))
+            antigravity_thread.daemon = True
+            antigravity_thread.start()
         # Close the window regardless of whether VSCode was launched
         root.destroy()
         return
@@ -110,11 +110,11 @@ def select_profile(profile, ctrl_pressed=False, alt_pressed=False):
     launch_thread.daemon = True
     launch_thread.start()
 
-    # If Ctrl is pressed and vsCodePath is available, also launch VS Code
+    # If Ctrl is pressed and vsCodePath is available, also launch Antigravity
     if ctrl_pressed and "vsCodePath" in profile and profile["vsCodePath"]:
-        vscode_thread = threading.Thread(target=launch_vscode, args=(profile["vsCodePath"],))
-        vscode_thread.daemon = True
-        vscode_thread.start()
+        antigravity_thread = threading.Thread(target=launch_antigravity, args=(profile["vsCodePath"],))
+        antigravity_thread.daemon = True
+        antigravity_thread.start()
 
     # Close the window
     root.destroy()
