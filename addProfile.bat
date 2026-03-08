@@ -5,19 +5,23 @@ setlocal enabledelayedexpansion
 :: PickEdgeProfile - New Profile Script
 :: -----------------------------------------------------------------------------
 
-:: 1. Validation - Exactly one PNG in current directory
-set "PNG_COUNT=0"
-for %%F in (*.png) do (
-    set /a PNG_COUNT+=1
-    set "SOURCE_FILE=%%F"
-)
+:: 1. File Selection - Prompt via PowerShell File Picker
+echo Please select the PNG image for the new profile...
+for /f "usebackq delims=" %%I in (`powershell -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.OpenFileDialog; $f.Filter = 'PNG Files (*.png)|*.png'; $f.InitialDirectory = (Get-Location).Path; $res = $f.ShowDialog(); if($res -eq 'OK'){ $f.FileName }"`) do set "SOURCE_FILE=%%I"
 
-if %PNG_COUNT% neq 1 (
-    echo [ERROR] Found %PNG_COUNT% PNG files in the current directory.
-    echo Please make sure there is exactly ONE .png file to process.
+if "%SOURCE_FILE%"=="" (
+    echo [ERROR] No file selected.
+    echo Please select a PNG file to process.
     pause
     exit /b 1
 )
+
+if not exist "%SOURCE_FILE%" (
+    echo [ERROR] Selected file does not exist: %SOURCE_FILE%
+    pause
+    exit /b 1
+)
+
 
 :: Configuration
 set "PY_FILE=C:\repo\JC_PickEdgeProfile\PickEdgeProfile.py"
