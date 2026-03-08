@@ -19,34 +19,25 @@ TILE_HEIGHT = 180
 
 # Edge profiles configuration
 EDGE_PROFILES = [
-    # {
-    #     "name": "Redi",
-    #     "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 5\""
-    # },
     {
-        "name": "CW",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 2\"",
-        "vsCodePath": "C:\\repo\\CasellaWeb"
+        "name": "CasellaWeb",
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 2\""
     },
     {
-        "name": "CK",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 999\"",
-        "vsCodePath": "C:\\repo\\CasellaKitchen"
+        "name": "CasellaKitchen",
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 999\""
     },
     {
-        "name": "N-Grave",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 3\"",
-        "vsCodePath": "C:\\repo\\ngrave"
+        "name": "NGrave",
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 3\""
     },
     {
         "name": "YTMusicAutomator",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 4\"",
-        "vsCodePath": "C:\\repo\\YTMusicAutomator"
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 4\""
     },
     {
-        "name": "HabitsTogether",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 5\"",
-        "vsCodePath": "C:\\repo\\habits_together"
+        "name": "habits_together",
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 5\""
     },
     {
         "name": "MoneyBoys",
@@ -54,18 +45,11 @@ EDGE_PROFILES = [
     },
     {
         "name": "StickerBoys",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 7\"",
-        "vsCodePath": "C:\\repo\\StickerBoys"
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 7\""
     },
-    # {
-    #     "name": "KinoMon",
-    #     "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 999\"",
-    #     "vsCodePath": "C:\\repo\\KinoMon"
-    # },
     {
         "name": "AIMSInspection",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 8\"",
-        "vsCodePath": "C:\\repo\\AIMSInspection"
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 8\""
     },
     {
         "name": "ClashOfMemes",
@@ -74,6 +58,10 @@ EDGE_PROFILES = [
     {
         "name": "IceDestroysMovies",
         "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 10\""
+    },
+    {
+        "name": "Veluro",
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 13\""
     }
 ]
 
@@ -85,38 +73,29 @@ def launch_edge_profile(command):
     except Exception as e:
         print(f"Error launching Edge: {e}")
 
-def launch_antigravity(path):
-    """Launch Antigravity with the specified path or workspace file if it exists"""
+def launch_antigravity(name):
+    """Launch Antigravity with the workspace file if it exists"""
     try:
-        # Get the folder name (app name)
-        app_name = os.path.basename(os.path.normpath(path))
-        
-        # Check if the workspace file exists in the folder
-        workspace_file = os.path.join(path, f"#{app_name}.code-workspace")
-        
-        # Also check for #<app_name>.code-workspace as a secondary option
-        alt_workspace_file = os.path.join(path, f"#{app_name}.code-workspace")
+        # Construct repo path and workspace file path based on name
+        repo_path = f"C:\\repo\\{name}"
+        workspace_file = os.path.join(repo_path, f"#{name}.code-workspace")
         
         if os.path.exists(workspace_file):
-            # Open the workspace file instead of the folder
+            # Open the workspace file
             subprocess.Popen(f'antigravity "{workspace_file}"', shell=True)
-        elif os.path.exists(alt_workspace_file):
-            # Open the alternative workspace file
-            subprocess.Popen(f'antigravity "{alt_workspace_file}"', shell=True)
         else:
-            # Launch Antigravity with the specified folder path
-            subprocess.Popen(f'antigravity "{path}"', shell=True)
+            # Do nothing if workspace does not exist
+            pass
     except Exception as e:
         print(f"Error launching Antigravity: {e}")
 
 def select_profile(profile, ctrl_pressed=False, alt_pressed=False):
     """Handle profile selection when a tile is clicked"""
-    # If Alt is pressed, only open VSCode (if available) and close app
+    # If Alt is pressed, try to open the workspace and close app
     if alt_pressed:
-        if "vsCodePath" in profile and profile["vsCodePath"]:
-            antigravity_thread = threading.Thread(target=launch_antigravity, args=(profile["vsCodePath"],))
-            antigravity_thread.daemon = True
-            antigravity_thread.start()
+        antigravity_thread = threading.Thread(target=launch_antigravity, args=(profile["name"],))
+        antigravity_thread.daemon = True
+        antigravity_thread.start()
         # Close the window regardless of whether VSCode was launched
         root.destroy()
         return
@@ -126,9 +105,9 @@ def select_profile(profile, ctrl_pressed=False, alt_pressed=False):
     launch_thread.daemon = True
     launch_thread.start()
 
-    # If Ctrl is pressed and vsCodePath is available, also launch Antigravity
-    if ctrl_pressed and "vsCodePath" in profile and profile["vsCodePath"]:
-        antigravity_thread = threading.Thread(target=launch_antigravity, args=(profile["vsCodePath"],))
+    # If Ctrl is pressed, also try to launch Antigravity
+    if ctrl_pressed:
+        antigravity_thread = threading.Thread(target=launch_antigravity, args=(profile["name"],))
         antigravity_thread.daemon = True
         antigravity_thread.start()
 
