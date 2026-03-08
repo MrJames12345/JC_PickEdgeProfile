@@ -7,7 +7,7 @@ setlocal enabledelayedexpansion
 
 :: 1. File Selection - Prompt via PowerShell File Picker
 echo Please select the PNG image for the new profile...
-for /f "usebackq delims=" %%I in (`powershell -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.OpenFileDialog; $f.Filter = 'PNG Files (*.png)|*.png'; $f.InitialDirectory = (Get-Location).Path; $res = $f.ShowDialog(); if($res -eq 'OK'){ $f.FileName }"`) do set "SOURCE_FILE=%%I"
+for /f "usebackq delims=" %%I in (`powershell -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.OpenFileDialog; $f.Filter = 'PNG Files (*.png)|*.png'; $f.InitialDirectory = [System.Environment]::GetFolderPath('Desktop'); $res = $f.ShowDialog(); if($res -eq 'OK'){ $f.FileName }"`) do set "SOURCE_FILE=%%I"
 
 if "%SOURCE_FILE%"=="" (
     echo [ERROR] No file selected.
@@ -120,4 +120,8 @@ echo Image saved to: %TARGET_FILE%
 echo PickEdgeProfile.py updated and formatted.
 echo ==========================================================
 echo.
-pause
+
+echo.
+echo Finishing... closing in 3 seconds.
+timeout /t 3 /nobreak > nul
+exit
