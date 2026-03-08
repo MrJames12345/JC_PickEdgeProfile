@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# PickEdgeProfile.py - Select Microsoft Edge profile using a grid of tiles
+# Dashboard.py - Select Microsoft Edge profile using a grid of tiles
 
 import os
 import sys
@@ -8,9 +8,10 @@ from tkinter import ttk
 import subprocess
 import threading
 from PIL import Image, ImageTk
+import utils
 
 # Constants
-TITLE = "Edge Profile Selection"
+TITLE = "Dashboard"
 COLUMNS = 3
 PADDING_X = 15  # Horizontal padding between tiles
 PADDING_Y = 2   # Further reduced vertical padding between tiles
@@ -76,16 +77,16 @@ def launch_edge_profile(command):
 def launch_antigravity(name):
     """Launch Antigravity with the workspace file if it exists"""
     try:
-        # Construct repo path and workspace file path based on name
-        repo_path = f"C:\\repo\\{name}"
-        workspace_file = os.path.join(repo_path, f"#{name}.code-workspace")
+        # Use common util to resolve the target
+        # For Dashboard (Edge profiles), we specifically look for the workspace file
+        repo_path = "C:\\repo"
+        target = utils.resolve_project_target(repo_path, name)
         
-        if os.path.exists(workspace_file):
-            # Open the workspace file
-            subprocess.Popen(f'antigravity "{workspace_file}"', shell=True)
-        else:
-            # Do nothing if workspace does not exist
-            pass
+        # In Dashboard, we previously only opened if it was a workspace
+        # (based on previous requirements). We'll keep that check if needed,
+        # but let's make it robust.
+        if target and target.endswith(".code-workspace"):
+            utils.launch_antigravity(target)
     except Exception as e:
         print(f"Error launching Antigravity: {e}")
 
@@ -273,25 +274,8 @@ window_height = (TILE_HEIGHT + 2 * PADDING_Y) * num_rows + 50  # Adjusted for in
 # Set the window size
 root.geometry(f"{window_width}x{window_height}")
 
-# Position the window on the second monitor
-root.update_idletasks()
-
-# Get the screen width and height
-screen_width = root.winfo_screenwidth()
-screen_height = root.winfo_screenheight()
-
-# Assuming the second monitor is to the right of the primary monitor
-# and has the same resolution (adjust if needed)
-second_monitor_x = screen_width  # Start of second monitor
-second_monitor_center_x = second_monitor_x + (screen_width // 2)
-second_monitor_center_y = screen_height // 2
-
-# Calculate position to center the window on the second monitor
-x = second_monitor_center_x - (window_width // 2)
-y = second_monitor_center_y - (window_height // 2)
-
-# Set the window position
-root.geometry(f"{window_width}x{window_height}+{x}+{y}")
+# Position the window on the second monitor using common util
+utils.center_window_on_second_monitor(root)
 
 # Bind Escape key to close the window
 root.bind("<Escape>", lambda event: root.destroy())

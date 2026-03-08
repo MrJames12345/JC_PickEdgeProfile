@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 :: -----------------------------------------------------------------------------
-:: PickEdgeProfile - New Profile Script
+:: Dashboard - New Profile Script
 :: -----------------------------------------------------------------------------
 
 :: 1. File Selection - Prompt via PowerShell File Picker
@@ -24,7 +24,7 @@ if not exist "%SOURCE_FILE%" (
 
 
 :: Configuration
-set "PY_FILE=C:\repo\JC_PickEdgeProfile\PickEdgeProfile.py"
+set "PY_FILE=C:\repo\JC_PickEdgeProfile\Dashboard.py"
 set "IMAGES_DIR=C:\repo\JC_PickEdgeProfile\images"
 
 :: 2. Prompt for Profile Number
@@ -33,11 +33,11 @@ set "PROFILE_NUMBER="
 set /p PROFILE_NUMBER="Enter Profile Number (e.g. 7): "
 if "%PROFILE_NUMBER%"=="" goto PROMPT_NUMBER
 
-:: Check if number exists in PickEdgeProfile.py
+:: Check if number exists in Dashboard.py
 python -c "import sys; p=r'%PY_FILE%'; c=open(p).read(); print('EXISTS' if f'Profile {sys.argv[1]}' in c else 'OK')" "%PROFILE_NUMBER%" > "%temp%\check_num.txt"
 set /p NUM_STATUS=<"%temp%\check_num.txt"
 if "!NUM_STATUS!"=="EXISTS" (
-    echo [ERROR] Profile Number '%PROFILE_NUMBER%' already exists in PickEdgeProfile.py.
+    echo [ERROR] Profile Number '%PROFILE_NUMBER%' already exists in Dashboard.py.
     goto PROMPT_NUMBER
 )
 
@@ -47,11 +47,11 @@ set "PROFILE_NAME="
 set /p PROFILE_NAME="Enter Profile Name (e.g. StickerBoys): "
 if "%PROFILE_NAME%"=="" goto PROMPT_NAME
 
-:: Check if name exists in PickEdgeProfile.py
+:: Check if name exists in Dashboard.py
 python -c "import sys; p=r'%PY_FILE%'; c=open(p).read(); print('EXISTS' if f'\"name\": \"{sys.argv[1]}\"' in c else 'OK')" "%PROFILE_NAME%" > "%temp%\check_name.txt"
 set /p NAME_STATUS=<"%temp%\check_name.txt"
 if "!NAME_STATUS!"=="EXISTS" (
-    echo [ERROR] Profile Name '%PROFILE_NAME%' already exists in PickEdgeProfile.py.
+    echo [ERROR] Profile Name '%PROFILE_NAME%' already exists in Dashboard.py.
     goto PROMPT_NAME
 )
 
@@ -77,8 +77,8 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-:: 6. Update PickEdgeProfile.py
-echo Updating PickEdgeProfile.py...
+:: 6. Update Dashboard.py
+echo Updating Dashboard.py...
 
 set "UPDATE_SCRIPT=%temp%\update_pep_script.py"
 
@@ -106,7 +106,7 @@ set /p UPDATE_STATUS=<"%temp%\update_status.txt"
 del "%UPDATE_SCRIPT%"
 
 if "!UPDATE_STATUS!"=="FAILED" (
-    echo [ERROR] Failed to update EDGE_PROFILES in PickEdgeProfile.py. 
+    echo [ERROR] Failed to update EDGE_PROFILES in Dashboard.py. 
     echo Please check the file format.
     pause
     exit /b 1
@@ -117,7 +117,7 @@ echo ==========================================================
 echo SUCCESS! 
 echo Profile '%PROFILE_NAME%' (Number %PROFILE_NUMBER%) was added.
 echo Image saved to: %TARGET_FILE%
-echo PickEdgeProfile.py updated and formatted.
+echo Dashboard.py updated and formatted.
 echo ==========================================================
 echo.
 
