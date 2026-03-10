@@ -75,17 +75,14 @@ def launch_edge_profile(command):
         print(f"Error launching Edge: {e}")
 
 def launch_antigravity(name):
-    """Launch Antigravity with the workspace file if it exists"""
+    """Launch Antigravity with the workspace file or folder if it exists"""
     try:
         # Use common util to resolve the target
-        # For Dashboard (Edge profiles), we specifically look for the workspace file
         repo_path = "C:\\repo"
         target = utils.resolve_project_target(repo_path, name)
         
-        # In Dashboard, we previously only opened if it was a workspace
-        # (based on previous requirements). We'll keep that check if needed,
-        # but let's make it robust.
-        if target and target.endswith(".code-workspace"):
+        # If target exists (either workspace file or project folder), launch it
+        if target:
             utils.launch_antigravity(target)
     except Exception as e:
         print(f"Error launching Antigravity: {e}")
