@@ -9,6 +9,9 @@ import subprocess
 import threading
 import utils
 
+# Toggle for launching Antigravity vs VSCode
+useAntigravity = False
+
 # Constants
 TITLE = "Pick JC Project"
 REPO_DIR = "C:\\repo"
@@ -31,14 +34,20 @@ def get_jc_projects():
     return sorted(projects)
 
 def open_project(name):
-    """Open the project in Antigravity"""
+    """Open the project in the selected editor"""
     try:
         # Use common util to resolve the target (workspace or folder)
         target = utils.resolve_project_target(REPO_DIR, name)
         
         if target:
             # Launch using common util
-            if utils.launch_antigravity(target):
+            success = False
+            if useAntigravity:
+                success = utils.launch_antigravity(target)
+            else:
+                success = utils.launch_vscode(target)
+                
+            if success:
                 # Close the dashboard after launching
                 root.destroy()
     except Exception as e:
@@ -71,7 +80,7 @@ def create_dashboard():
         
         btn = tk.Button(
             grid_frame,
-            text=project.replace("JC_", "").replace("_", " "),
+            text=utils.split_camel_case(project.replace("JC_", "").replace("_", " ")),
             width=BTN_WIDTH,
             height=BTN_HEIGHT,
             bg="#333333",

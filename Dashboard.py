@@ -10,6 +10,9 @@ import threading
 from PIL import Image, ImageTk
 import utils
 
+# Toggle for launching Antigravity vs VSCode
+useAntigravity = False
+
 # Constants
 TITLE = "Dashboard"
 COLUMNS = 3
@@ -63,6 +66,10 @@ EDGE_PROFILES = [
     {
         "name": "Veluro",
         "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 13\""
+    },
+    {
+        "name": "Copilot",
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 14\""
     }
 ]
 
@@ -74,8 +81,8 @@ def launch_edge_profile(command):
     except Exception as e:
         print(f"Error launching Edge: {e}")
 
-def launch_antigravity(name):
-    """Launch Antigravity with the workspace file or folder if it exists"""
+def launch_editor(name):
+    """Launch the editor with the workspace file or folder if it exists"""
     try:
         # Use common util to resolve the target
         repo_path = "C:\\repo"
@@ -83,18 +90,21 @@ def launch_antigravity(name):
         
         # If target exists (either workspace file or project folder), launch it
         if target:
-            utils.launch_antigravity(target)
+            if useAntigravity:
+                utils.launch_antigravity(target)
+            else:
+                utils.launch_vscode(target)
     except Exception as e:
-        print(f"Error launching Antigravity: {e}")
+        print(f"Error launching editor: {e}")
 
 def select_profile(profile, ctrl_pressed=False, alt_pressed=False):
     """Handle profile selection when a tile is clicked"""
     # If Alt is pressed, try to open the workspace and close app
     if alt_pressed:
-        antigravity_thread = threading.Thread(target=launch_antigravity, args=(profile["name"],))
-        antigravity_thread.daemon = True
-        antigravity_thread.start()
-        # Close the window regardless of whether VSCode was launched
+        launch_thread = threading.Thread(target=launch_editor, args=(profile["name"],))
+        launch_thread.daemon = True
+        launch_thread.start()
+        # Close the window regardless of whether the editor was launched
         root.destroy()
         return
 
@@ -103,11 +113,11 @@ def select_profile(profile, ctrl_pressed=False, alt_pressed=False):
     launch_thread.daemon = True
     launch_thread.start()
 
-    # If Ctrl is pressed, also try to launch Antigravity
+    # If Ctrl is pressed, also try to launch the editor
     if ctrl_pressed:
-        antigravity_thread = threading.Thread(target=launch_antigravity, args=(profile["name"],))
-        antigravity_thread.daemon = True
-        antigravity_thread.start()
+        editor_thread = threading.Thread(target=launch_editor, args=(profile["name"],))
+        editor_thread.daemon = True
+        editor_thread.start()
 
     # Close the window
     root.destroy()

@@ -1,6 +1,11 @@
 import os
 import shutil
 import subprocess
+import re
+
+def split_camel_case(text):
+    """Split camelCase text by inserting spaces before uppercase letters"""
+    return re.sub(r'(?<!^)(?=[A-Z])', ' ', text)
 
 def get_antigravity_path():
     """Find the absolute path to the antigravity executable"""
@@ -21,6 +26,16 @@ def launch_antigravity(target_path):
         return True
     except Exception as e:
         print(f"Error launching Antigravity: {e}")
+        return False
+
+def launch_vscode(target_path):
+    """Launch VS Code with the specified path"""
+    try:
+        # 'code' is the standard command for VS Code if it's in PATH
+        subprocess.Popen(f'code "{target_path}"', shell=True)
+        return True
+    except Exception as e:
+        print(f"Error launching VS Code: {e}")
         return False
 
 def resolve_project_target(repo_dir, name):
