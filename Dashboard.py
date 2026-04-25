@@ -66,10 +66,6 @@ EDGE_PROFILES = [
     {
         "name": "Veluro",
         "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 13\""
-    },
-    {
-        "name": "Copilot",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 14\""
     }
 ]
 

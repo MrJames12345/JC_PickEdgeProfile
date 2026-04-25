@@ -27,24 +27,10 @@ if not exist "%SOURCE_FILE%" (
 set "PY_FILE=C:\repo\JC_PickEdgeProfile\Dashboard.py"
 set "IMAGES_DIR=C:\repo\JC_PickEdgeProfile\images"
 
-:: 2. Prompt for Profile Number
-:PROMPT_NUMBER
-set "PROFILE_NUMBER="
-set /p PROFILE_NUMBER="Enter Profile Number (e.g. 7): "
-if "%PROFILE_NUMBER%"=="" goto PROMPT_NUMBER
-
-:: Check if number exists in Dashboard.py
-python -c "import sys; p=r'%PY_FILE%'; c=open(p).read(); print('EXISTS' if f'Profile {sys.argv[1]}' in c else 'OK')" "%PROFILE_NUMBER%" > "%temp%\check_num.txt"
-set /p NUM_STATUS=<"%temp%\check_num.txt"
-if "!NUM_STATUS!"=="EXISTS" (
-    echo [ERROR] Profile Number '%PROFILE_NUMBER%' already exists in Dashboard.py.
-    goto PROMPT_NUMBER
-)
-
-:: 3. Prompt for Profile Name
+:: 2. Prompt for Profile Name
 :PROMPT_NAME
 set "PROFILE_NAME="
-set /p PROFILE_NAME="Enter Profile Name (e.g. StickerBoys): "
+set /p PROFILE_NAME="Enter Profile Name (e.g. Sticker Boys): "
 if "%PROFILE_NAME%"=="" goto PROMPT_NAME
 
 :: Check if name exists in Dashboard.py
@@ -55,7 +41,7 @@ if "!NAME_STATUS!"=="EXISTS" (
     goto PROMPT_NAME
 )
 
-:: 4. Final Verification
+:: 3. Final Verification
 if not exist "%PY_FILE%" (
     echo [ERROR] Could not find %PY_FILE%
     pause
@@ -77,37 +63,57 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-:: 6. Update Dashboard.py
-echo Updating Dashboard.py...
+:: 5b. Create Edge profile, inject Bookmarks, register in Local State, update Dashboard.py
+set "SETUP_SCRIPT=%temp%\setup_edge_profile.py"
 
-set "UPDATE_SCRIPT=%temp%\update_pep_script.py"
+echo import sys, re, os, json > "%SETUP_SCRIPT%"
+echo name = sys.argv[1] >> "%SETUP_SCRIPT%"
+echo py_file = sys.argv[2] >> "%SETUP_SCRIPT%"
+echo user_data_dir = os.path.join(os.environ['LOCALAPPDATA'], 'Microsoft', 'Edge', 'User Data') >> "%SETUP_SCRIPT%"
+echo local_state_path = os.path.join(user_data_dir, 'Local State') >> "%SETUP_SCRIPT%"
+echo max_num = 0 >> "%SETUP_SCRIPT%"
+echo for entry in os.listdir(user_data_dir): >> "%SETUP_SCRIPT%"
+echo     m = re.match(r'^^Profile (\d+)$', entry) >> "%SETUP_SCRIPT%"
+echo     if m: >> "%SETUP_SCRIPT%"
+echo         n = int(m.group(1)) >> "%SETUP_SCRIPT%"
+echo         if n ^> max_num: max_num = n >> "%SETUP_SCRIPT%"
+echo new_num = max_num + 1 >> "%SETUP_SCRIPT%"
+echo profile_dir_name = 'Profile ' + str(new_num) >> "%SETUP_SCRIPT%"
+echo new_profile_path = os.path.join(user_data_dir, profile_dir_name) >> "%SETUP_SCRIPT%"
+echo os.makedirs(new_profile_path, exist_ok=True) >> "%SETUP_SCRIPT%"
+echo bm_child = {"date_added": "13250000000000000", "guid": "5d399380-6060-466d-9610-1c099309623e", "id": "5", "name": "Outlook", "type": "url", "url": "https://outlook.live.com/mail/0/"} >> "%SETUP_SCRIPT%"
+echo bm_bar = {"children": [bm_child], "date_added": "13250000000000000", "date_modified": "13250000000000000", "id": "1", "name": "Favorites bar", "type": "folder"} >> "%SETUP_SCRIPT%"
+echo bm_other = {"children": [], "id": "2", "name": "Other favorites", "type": "folder"} >> "%SETUP_SCRIPT%"
+echo bm_synced = {"children": [], "id": "3", "name": "Mobile favorites", "type": "folder"} >> "%SETUP_SCRIPT%"
+echo bookmarks = {"checksum": "", "roots": {"bookmark_bar": bm_bar, "other": bm_other, "synced": bm_synced}, "version": 1} >> "%SETUP_SCRIPT%"
+echo with open(os.path.join(new_profile_path, 'Bookmarks'), 'w', encoding='utf-8') as f: json.dump(bookmarks, f, indent=3) >> "%SETUP_SCRIPT%"
+echo with open(local_state_path, 'r', encoding='utf-8') as f: local_state = json.load(f) >> "%SETUP_SCRIPT%"
+echo info_entry = {"name": name, "shortcut_name": "", "user_name": "", "managed_user_id": "", "is_omitted_from_profile_list": False} >> "%SETUP_SCRIPT%"
+echo local_state.setdefault('profile', {}).setdefault('info_cache', {})[profile_dir_name] = info_entry >> "%SETUP_SCRIPT%"
+echo profiles_order = local_state['profile'].setdefault('profiles_order', []) >> "%SETUP_SCRIPT%"
+echo if profile_dir_name not in profiles_order: profiles_order.append(profile_dir_name) >> "%SETUP_SCRIPT%"
+echo with open(local_state_path, 'w', encoding='utf-8') as f: json.dump(local_state, f, indent=3) >> "%SETUP_SCRIPT%"
+echo with open(py_file, 'r', encoding='utf-8') as f: content = f.read() >> "%SETUP_SCRIPT%"
+echo pattern = re.compile(r'(EDGE_PROFILES = \[.*?)\s*(\])', re.DOTALL) >> "%SETUP_SCRIPT%"
+echo match = pattern.search(content) >> "%SETUP_SCRIPT%"
+echo if match: >> "%SETUP_SCRIPT%"
+echo     middle = match.group(1).rstrip() >> "%SETUP_SCRIPT%"
+echo     if middle.endswith('}'): middle += ',' >> "%SETUP_SCRIPT%"
+echo     cmd = '\\"C:\\\\Program Files (x86)\\\\Microsoft\\\\Edge\\\\Application\\\\msedge.exe\\" --profile-directory=\\"' + profile_dir_name + '\\"' >> "%SETUP_SCRIPT%"
+echo     entry = '\n    {\n        "name": "' + name + '",\n        "command": "' + cmd + '"\n    }' >> "%SETUP_SCRIPT%"
+echo     suffix = '\n]' >> "%SETUP_SCRIPT%"
+echo     new_content = content[:match.start()] + middle + entry + suffix + content[match.end():] >> "%SETUP_SCRIPT%"
+echo     with open(py_file, 'w', encoding='utf-8') as f: f.write(new_content) >> "%SETUP_SCRIPT%"
+echo     print(profile_dir_name) >> "%SETUP_SCRIPT%"
+echo else: >> "%SETUP_SCRIPT%"
+echo     print("FAILED") >> "%SETUP_SCRIPT%"
 
-:: Write the python script line by line WITHOUT the ( ) block to avoid escaping hell
-echo import sys, re > "%UPDATE_SCRIPT%"
-echo p = r'%PY_FILE%' >> "%UPDATE_SCRIPT%"
-echo name = sys.argv[1] >> "%UPDATE_SCRIPT%"
-echo num = sys.argv[2] >> "%UPDATE_SCRIPT%"
-echo with open(p, 'r', encoding='utf-8') as f: content = f.read() >> "%UPDATE_SCRIPT%"
-echo pattern = re.compile(r'(EDGE_PROFILES = \[.*?)\s*(\])', re.DOTALL) >> "%UPDATE_SCRIPT%"
-echo match = pattern.search(content) >> "%UPDATE_SCRIPT%"
-echo if match: >> "%UPDATE_SCRIPT%"
-echo     middle = match.group(1).rstrip() >> "%UPDATE_SCRIPT%"
-echo     if middle.endswith('}'): middle += ',' >> "%UPDATE_SCRIPT%"
-echo     entry = '\n    {\n        "name": "' + name + '",\n        "command": "\\"C:\\\\Program Files (x86)\\\\Microsoft\\\\Edge\\\\Application\\\\msedge.exe\\" --profile-directory=\\"Profile ' + num + '\\""\n    }' >> "%UPDATE_SCRIPT%"
-echo     suffix = '\n]' >> "%UPDATE_SCRIPT%"
-echo     new_content = content[:match.start()] + middle + entry + suffix + content[match.end():] >> "%UPDATE_SCRIPT%"
-echo     with open(p, 'w', encoding='utf-8') as f: f.write(new_content) >> "%UPDATE_SCRIPT%"
-echo     print("SUCCESS") >> "%UPDATE_SCRIPT%"
-echo else: >> "%UPDATE_SCRIPT%"
-echo     print("FAILED") >> "%UPDATE_SCRIPT%"
+python "%SETUP_SCRIPT%" "%PROFILE_NAME%" "%PY_FILE%" > "%temp%\setup_status.txt"
+set /p PROFILE_DIR=<"%temp%\setup_status.txt"
+del "%SETUP_SCRIPT%"
 
-python "%UPDATE_SCRIPT%" "%PROFILE_NAME%" "%PROFILE_NUMBER%" > "%temp%\update_status.txt"
-set /p UPDATE_STATUS=<"%temp%\update_status.txt"
-del "%UPDATE_SCRIPT%"
-
-if "!UPDATE_STATUS!"=="FAILED" (
-    echo [ERROR] Failed to update EDGE_PROFILES in Dashboard.py. 
-    echo Please check the file format.
+if "!PROFILE_DIR!"=="FAILED" (
+    echo [ERROR] Failed to create Edge profile or update Dashboard.py.
     pause
     exit /b 1
 )
@@ -115,11 +121,15 @@ if "!UPDATE_STATUS!"=="FAILED" (
 echo.
 echo ==========================================================
 echo SUCCESS! 
-echo Profile '%PROFILE_NAME%' (Number %PROFILE_NUMBER%) was added.
+echo Profile '%PROFILE_NAME%' (!PROFILE_DIR!) was added.
 echo Image saved to: %TARGET_FILE%
-echo Dashboard.py updated and formatted.
+echo Dashboard.py updated.
 echo ==========================================================
 echo.
+
+:: 6. Launch Edge with the new profile
+echo Launching new profile '%PROFILE_NAME%'...
+start "" "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --profile-directory="!PROFILE_DIR!" --no-first-run
 
 echo.
 echo Finishing... closing in 3 seconds.
