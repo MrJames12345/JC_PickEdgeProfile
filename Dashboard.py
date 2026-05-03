@@ -40,6 +40,14 @@ EDGE_PROFILES = [
         "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 4\""
     },
     {
+        "name": "AIMSInspection",
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 8\""
+    },
+    {
+        "name": "Veluro",
+        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 13\""
+    },
+    {
         "name": "habits_together",
         "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 5\""
     },
@@ -47,26 +55,18 @@ EDGE_PROFILES = [
         "name": "MoneyBoys",
         "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 6\""
     },
-    {
-        "name": "StickerBoys",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 7\""
-    },
-    {
-        "name": "AIMSInspection",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 8\""
-    },
-    {
-        "name": "ClashOfMemes",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 9\""
-    },
-    {
-        "name": "IceDestroysMovies",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 10\""
-    },
-    {
-        "name": "Veluro",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 13\""
-    }
+    # {
+    #     "name": "StickerBoys",
+    #     "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 7\""
+    # },
+    # {
+    #     "name": "ClashOfMemes",
+    #     "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 9\""
+    # },
+    # {
+    #     "name": "IceDestroysMovies",
+    #     "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 10\""
+    # },
 ]
 
 def launch_edge_profile(command):
