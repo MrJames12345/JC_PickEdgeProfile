@@ -15,6 +15,8 @@ useAntigravity = False
 # Constants
 TITLE = "Pick JC Project"
 REPO_DIR = "C:\\repo"
+ALL_OPTION = "All"
+ALL_OPTION_WORKSPACE = os.path.join(REPO_DIR, "#AllApps.code-workspace")
 COLUMNS = 4
 PADDING_X = 10
 PADDING_Y = 10
@@ -31,21 +33,31 @@ def get_jc_projects():
                     projects.append(d)
     except Exception as e:
         print(f"Error listing projects: {e}")
-    return sorted(projects)
+    return [ALL_OPTION] + sorted(projects)
 
-def open_project(name):
-    """Open the project in the selected editor"""
+def open_project(name, open_in_sourcetree=False):
+    """Open the project in SourceTree or the selected editor"""
     try:
+        if name == ALL_OPTION:
+            # The All option is VS Code only.
+            target = ALL_OPTION_WORKSPACE if os.path.exists(ALL_OPTION_WORKSPACE) else REPO_DIR
+            if utils.launch_vscode(target):
+                root.destroy()
+            return
+
         # Use common util to resolve the target (workspace or folder)
         target = utils.resolve_project_target(REPO_DIR, name)
         
         if target:
-            # Launch using common util
             success = False
-            if useAntigravity:
-                success = utils.launch_antigravity(target)
+            if open_in_sourcetree:
+                success = utils.launch_sourcetree(target)
             else:
-                success = utils.launch_vscode(target)
+                # Launch using common util
+                if useAntigravity:
+                    success = utils.launch_antigravity(target)
+                else:
+                    success = utils.launch_vscode(target)
                 
             if success:
                 # Close the dashboard after launching
@@ -77,15 +89,19 @@ def create_dashboard():
     for i, project in enumerate(projects):
         row = i // COLUMNS
         col = i % COLUMNS
+
+        is_all = project == ALL_OPTION
+        default_bg = "#2e7d32" if is_all else "#333333"
+        hover_bg = "#388e3c" if is_all else "#444444"
         
         btn = tk.Button(
             grid_frame,
-            text=utils.split_camel_case(project.replace("JC_", "").replace("_", " ")),
+            text=project if project == ALL_OPTION else utils.split_camel_case(project.replace("JC_", "").replace("_", " ")),
             width=BTN_WIDTH,
             height=BTN_HEIGHT,
-            bg="#333333",
+            bg=default_bg,
             fg="white",
-            activebackground="#444444",
+            activebackground=hover_bg,
             activeforeground="white",
             relief=tk.FLAT,
             cursor="hand2",
@@ -93,12 +109,18 @@ def create_dashboard():
             font=("Segoe UI", 10, "bold")
         )
         btn.grid(row=row, column=col, padx=PADDING_X, pady=PADDING_Y)
+
+        def on_shift_click(e, p=project):
+            open_project(p, open_in_sourcetree=(p != ALL_OPTION))
+            return "break"
+
+        btn.bind("<Shift-Button-1>", on_shift_click)
         
         # Add hover effect
-        def on_enter(e, b=btn):
-            b.config(bg="#444444")
-        def on_leave(e, b=btn):
-            b.config(bg="#333333")
+        def on_enter(e, b=btn, bg=hover_bg):
+            b.config(bg=bg)
+        def on_leave(e, b=btn, bg=default_bg):
+            b.config(bg=bg)
         
         btn.bind("<Enter>", on_enter)
         btn.bind("<Leave>", on_leave)

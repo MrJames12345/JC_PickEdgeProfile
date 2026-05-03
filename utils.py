@@ -38,6 +38,35 @@ def launch_vscode(target_path):
         print(f"Error launching VS Code: {e}")
         return False
 
+def get_sourcetree_path():
+    """Find the absolute path to the SourceTree executable"""
+    path = shutil.which('sourcetree')
+    if path:
+        return path
+
+    potential_path = os.path.expandvars(r'%LOCALAPPDATA%\SourceTree\SourceTree.exe')
+    if os.path.exists(potential_path):
+        return potential_path
+
+    return 'sourcetree'
+
+def launch_sourcetree(target_path):
+    """Launch SourceTree with the repo folder for the specified target"""
+    try:
+        sourcetree_exe = get_sourcetree_path()
+        repo_path = os.path.dirname(target_path) if os.path.isfile(target_path) else target_path
+        repo_path = os.path.normpath(repo_path)
+
+        # Prefer SourceTree's explicit open/focus-repository argument.
+        # Fallback to plain path invocation for installations that ignore -f.
+        result = subprocess.run([sourcetree_exe, '-f', repo_path], shell=False)
+        if result.returncode != 0:
+            subprocess.Popen([sourcetree_exe, repo_path], shell=False)
+        return True
+    except Exception as e:
+        print(f"Error launching SourceTree: {e}")
+        return False
+
 def resolve_project_target(repo_dir, name):
     """Resolve the best target (workspace or folder) for a project name"""
     project_path = os.path.join(repo_dir, name)

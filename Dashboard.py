@@ -93,8 +93,26 @@ def launch_editor(name):
     except Exception as e:
         print(f"Error launching editor: {e}")
 
-def select_profile(profile, ctrl_pressed=False, alt_pressed=False):
+def launch_sourcetree_for_profile(name):
+    """Launch SourceTree for the matching project folder"""
+    try:
+        repo_path = "C:\\repo"
+        target = utils.resolve_project_target(repo_path, name)
+        if target:
+            utils.launch_sourcetree(target)
+    except Exception as e:
+        print(f"Error launching SourceTree: {e}")
+
+def select_profile(profile, ctrl_pressed=False, alt_pressed=False, shift_pressed=False):
     """Handle profile selection when a tile is clicked"""
+    # If Shift is pressed, open the matching project in SourceTree and close app
+    if shift_pressed:
+        launch_thread = threading.Thread(target=launch_sourcetree_for_profile, args=(profile["name"],))
+        launch_thread.daemon = True
+        launch_thread.start()
+        root.destroy()
+        return
+
     # If Alt is pressed, try to open the workspace and close app
     if alt_pressed:
         launch_thread = threading.Thread(target=launch_editor, args=(profile["name"],))
@@ -237,11 +255,12 @@ for i, profile in enumerate(EDGE_PROFILES):
         print(f"Error loading image: {e}")
         img = None
 
-    # Define click handler function that detects Ctrl and Alt keys
+    # Define click handler function that detects Ctrl, Alt, and Shift keys
     def handle_click(event, prof=profile):
         ctrl_pressed = bool(event.state & 0x4)  # Check if Ctrl key is pressed
         alt_pressed = bool(event.state & 0x20000)  # Check if Alt key is pressed (use only the reliable mask)
-        select_profile(prof, ctrl_pressed, alt_pressed)
+        shift_pressed = bool(event.state & 0x1)  # Check if Shift key is pressed
+        select_profile(prof, ctrl_pressed, alt_pressed, shift_pressed)
 
     # Add image or placeholder
     if img:
