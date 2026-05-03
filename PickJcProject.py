@@ -131,6 +131,10 @@ def create_dashboard():
     # Escape to close
     root.bind("<Escape>", lambda e: root.destroy())
 
+    # Press "a" to open the All workspace/folder.
+    root.bind("<KeyPress-a>", lambda e: open_project(ALL_OPTION))
+    root.bind("<KeyPress-A>", lambda e: open_project(ALL_OPTION))
+
     root.mainloop()
 
 if __name__ == "__main__":
