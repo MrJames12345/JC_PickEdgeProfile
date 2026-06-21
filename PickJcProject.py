@@ -9,7 +9,7 @@ import subprocess
 import threading
 import utils
 
-# Toggle for launching Antigravity vs VSCode
+# Toggle for launching Antigravity vs Cursor
 useAntigravity = False
 
 # Constants
@@ -39,9 +39,9 @@ def open_project(name, open_in_sourcetree=False):
     """Open the project in SourceTree or the selected editor"""
     try:
         if name == ALL_OPTION:
-            # The All option is VS Code only.
+            # The All option opens in the configured editor only.
             target = ALL_OPTION_WORKSPACE if os.path.exists(ALL_OPTION_WORKSPACE) else REPO_DIR
-            if utils.launch_vscode(target):
+            if utils.launch_editor(target):
                 root.destroy()
             return
 
@@ -57,7 +57,7 @@ def open_project(name, open_in_sourcetree=False):
                 if useAntigravity:
                     success = utils.launch_antigravity(target)
                 else:
-                    success = utils.launch_vscode(target)
+                    success = utils.launch_editor(target)
                 
             if success:
                 # Close the dashboard after launching
@@ -131,9 +131,20 @@ def create_dashboard():
     # Escape to close
     root.bind("<Escape>", lambda e: root.destroy())
 
-    # Press "a" to open the All workspace/folder.
-    root.bind("<KeyPress-a>", lambda e: open_project(ALL_OPTION))
-    root.bind("<KeyPress-A>", lambda e: open_project(ALL_OPTION))
+    # Build letter-to-project mapping: first project whose display name starts with each letter
+    letter_map = {}
+    for project in projects:
+        display = "All" if project == ALL_OPTION else utils.split_camel_case(project.replace("JC_", "").replace("_", " "))
+        first_letter = display[0].lower() if display else ""
+        if first_letter and first_letter not in letter_map:
+            letter_map[first_letter] = project
+
+    def on_key_press(e):
+        key = e.char.lower() if e.char else ""
+        if key in letter_map:
+            open_project(letter_map[key])
+
+    root.bind("<KeyPress>", on_key_press)
 
     root.mainloop()
 

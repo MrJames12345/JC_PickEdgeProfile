@@ -3,6 +3,8 @@ import shutil
 import subprocess
 import re
 
+useVscode = False
+
 def split_camel_case(text):
     """Split camelCase text by inserting spaces before uppercase letters"""
     return re.sub(r'(?<!^)(?=[A-Z])', ' ', text)
@@ -28,15 +30,39 @@ def launch_antigravity(target_path):
         print(f"Error launching Antigravity: {e}")
         return False
 
+def get_cursor_path():
+    """Find the absolute path to the Cursor executable"""
+    path = shutil.which('cursor')
+    if not path:
+        potential_path = os.path.expandvars(r'%LOCALAPPDATA%\Programs\cursor\Cursor.exe')
+        if os.path.exists(potential_path):
+            return potential_path
+    return path or 'cursor'
+
+def launch_cursor(target_path):
+    """Launch Cursor with the specified path"""
+    try:
+        cursor_exe = get_cursor_path()
+        subprocess.Popen(f'"{cursor_exe}" "{target_path}"', shell=True)
+        return True
+    except Exception as e:
+        print(f"Error launching Cursor: {e}")
+        return False
+
 def launch_vscode(target_path):
     """Launch VS Code with the specified path"""
     try:
-        # 'code' is the standard command for VS Code if it's in PATH
         subprocess.Popen(f'code "{target_path}"', shell=True)
         return True
     except Exception as e:
         print(f"Error launching VS Code: {e}")
         return False
+
+def launch_editor(target_path):
+    """Launch VS Code or Cursor based on useVscode"""
+    if useVscode:
+        return launch_vscode(target_path)
+    return launch_cursor(target_path)
 
 def get_sourcetree_path():
     """Find the absolute path to the SourceTree executable"""

@@ -10,7 +10,7 @@ import threading
 from PIL import Image, ImageTk
 import utils
 
-# Toggle for launching Antigravity vs VSCode
+# Toggle for launching Antigravity vs Cursor
 useAntigravity = False
 
 # Constants
@@ -89,7 +89,7 @@ def launch_editor(name):
             if useAntigravity:
                 utils.launch_antigravity(target)
             else:
-                utils.launch_vscode(target)
+                utils.launch_editor(target)
     except Exception as e:
         print(f"Error launching editor: {e}")
 
