@@ -2,6 +2,7 @@ import os
 import shutil
 import subprocess
 import re
+import time
 
 def split_camel_case(text):
     """Split camelCase text by inserting spaces before uppercase letters"""
@@ -69,12 +70,42 @@ def get_sourcetree_path():
 
     return 'sourcetree'
 
+def is_sourcetree_running():
+    """Return True if SourceTree is already running"""
+    try:
+        result = subprocess.run(
+            ['tasklist', '/FI', 'IMAGENAME eq SourceTree.exe', '/NH'],
+            capture_output=True,
+            text=True,
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+        return 'SourceTree.exe' in result.stdout
+    except Exception:
+        return False
+
+def wait_for_sourcetree(timeout=10):
+    """Wait until SourceTree process is running and briefly responsive"""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if is_sourcetree_running():
+            time.sleep(0.5)
+            return True
+        time.sleep(0.2)
+    return False
+
 def launch_sourcetree(target_path):
     """Launch SourceTree with the repo folder for the specified target"""
     try:
         sourcetree_exe = get_sourcetree_path()
         repo_path = os.path.dirname(target_path) if os.path.isfile(target_path) else target_path
         repo_path = os.path.normpath(repo_path)
+
+        # SourceTree must already be running before -f / path args are handled.
+        if not is_sourcetree_running():
+            subprocess.Popen([sourcetree_exe], shell=False)
+            if not wait_for_sourcetree():
+                print("SourceTree did not start in time")
+                return False
 
         # Prefer SourceTree's explicit open/focus-repository argument.
         # Fallback to plain path invocation for installations that ignore -f.
