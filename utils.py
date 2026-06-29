@@ -3,8 +3,6 @@ import shutil
 import subprocess
 import re
 
-useVscode = False
-
 def split_camel_case(text):
     """Split camelCase text by inserting spaces before uppercase letters"""
     return re.sub(r'(?<!^)(?=[A-Z])', ' ', text)
@@ -49,19 +47,8 @@ def launch_cursor(target_path):
         print(f"Error launching Cursor: {e}")
         return False
 
-def launch_vscode(target_path):
-    """Launch VS Code with the specified path"""
-    try:
-        subprocess.Popen(f'code "{target_path}"', shell=True)
-        return True
-    except Exception as e:
-        print(f"Error launching VS Code: {e}")
-        return False
-
 def launch_editor(target_path):
-    """Launch VS Code or Cursor based on useVscode"""
-    if useVscode:
-        return launch_vscode(target_path)
+    """Launch Cursor with the specified path"""
     return launch_cursor(target_path)
 
 def get_sourcetree_path():
