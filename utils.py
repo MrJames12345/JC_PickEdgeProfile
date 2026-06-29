@@ -31,11 +31,17 @@ def launch_antigravity(target_path):
 def get_cursor_path():
     """Find the absolute path to the Cursor executable"""
     path = shutil.which('cursor')
-    if not path:
-        potential_path = os.path.expandvars(r'%LOCALAPPDATA%\Programs\cursor\Cursor.exe')
+    if path:
+        return path
+
+    for potential_path in (
+        os.path.expandvars(r'%LOCALAPPDATA%\Programs\cursor\Cursor.exe'),
+        r'C:\cursor\Cursor.exe',
+    ):
         if os.path.exists(potential_path):
             return potential_path
-    return path or 'cursor'
+
+    return 'cursor'
 
 def launch_cursor(target_path):
     """Launch Cursor with the specified path"""
