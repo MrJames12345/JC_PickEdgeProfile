@@ -1,5 +1,20 @@
 #!/usr/bin/env node
 
+// Inline logging to <scriptname>_output.txt
+import { writeFileSync as __logWFS, appendFileSync as __logAFS, mkdirSync as __logMKDIR } from "node:fs";
+import { resolve as __logResolve, dirname as __logDirname, basename as __logBasename } from "node:path";
+import { fileURLToPath as __logFTUP } from "node:url";
+const __logDir = __logDirname(__logFTUP(import.meta.url));
+const __logName = __logBasename(__logFTUP(import.meta.url), ".mjs");
+const __logPath = __logResolve(__logDir, __logName + "_output.txt");
+__logMKDIR(__logDir, { recursive: true });
+__logWFS(__logPath, ["=".repeat(70)," LOG: " + __logName + ".mjs"," Time: " + new Date().toISOString()," CWD:  " + process.cwd()," Node: " + process.version," Args: " + (process.argv.slice(2).join(" ") || "(none)"),"=".repeat(70),"",""].join("\n"));
+const __origLog=console.log,__origErr=console.error,__origWarn=console.warn;
+function __wl(s){__logAFS(__logPath,s+"\n")}
+console.log=(...a)=>{__wl(a.map(String).join(" "));__origLog(...a)};
+console.error=(...a)=>{__wl("[ERR] "+a.map(String).join(" "));__origErr(...a)};
+console.warn=(...a)=>{__wl("[WRN] "+a.map(String).join(" "));__origWarn(...a)};
+
 /**
  * Add a new Edge profile with image, bookmarks, and dashboard registration.
  * Equivalent to: addProfile.bat

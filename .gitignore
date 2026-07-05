@@ -1,2 +1,4 @@
 to_speak.txt
 __pycache__
+# Script output logs
+*_output.txt
