@@ -105,11 +105,11 @@ def launch_sourcetree_for_profile(name):
 
 def select_profile(profile, ctrl_pressed=False, alt_pressed=False, shift_pressed=False):
     """Handle profile selection when a tile is clicked"""
-    # If Shift is pressed, open the matching project in SourceTree and close app
+    # If Shift is pressed, open the matching project in SourceTree and close app.
+    # Must run synchronously: launch_sourcetree waits on SourceTree, and a daemon
+    # thread would be killed as soon as the process exits after root.destroy().
     if shift_pressed:
-        launch_thread = threading.Thread(target=launch_sourcetree_for_profile, args=(profile["name"],))
-        launch_thread.daemon = True
-        launch_thread.start()
+        launch_sourcetree_for_profile(profile["name"])
         root.destroy()
         return
 
