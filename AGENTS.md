@@ -8,4 +8,4 @@ Dashboard suite for launching Microsoft Edge profiles, Cursor, and SourceTree. I
 
 ## Shared agent instructions
 
-**Git conventions:** `P_TheGoodLibrary/#AGENTS_Shared.md` (Git section)
+**Git conventions:** `the-good-library/#AGENTS_Shared.md` (Git section)
