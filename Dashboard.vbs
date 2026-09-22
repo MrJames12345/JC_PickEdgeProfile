@@ -21,6 +21,7 @@ Set shell = CreateObject("WScript.Shell")
 
 ' Run the Python script with hidden window
 ' 0 = Hide the window and activate another window
+shell.CurrentDirectory = scriptDir
 shell.Run "pythonw """ & pythonScript & """", 0, False
 
 ' Clean up

@@ -9,6 +9,9 @@ import subprocess
 import threading
 import utils
 
+logger = utils.setup_logger(__file__)
+logger.info("Starting Pick JC Project...")
+
 # Toggle for launching Antigravity vs Cursor
 useAntigravity = False
 
@@ -23,51 +26,77 @@ PADDING_Y = 10
 BTN_WIDTH = 25
 BTN_HEIGHT = 2
 
+# Get the script directory
+if getattr(sys, 'frozen', False):
+    base_path = os.path.dirname(sys.executable)
+else:
+    base_path = os.path.dirname(os.path.abspath(__file__))
+
+os.chdir(base_path)
+logger.info(f"Base path and CWD: {base_path}")
+
 def get_jc_projects():
     """Get list of folders in C:\\repo starting with JC_"""
     projects = []
     try:
+        logger.info(f"Scanning '{REPO_DIR}' for JC_ projects...")
         if os.path.exists(REPO_DIR):
             for d in os.listdir(REPO_DIR):
                 if d.startswith("JC_") and os.path.isdir(os.path.join(REPO_DIR, d)):
                     projects.append(d)
+        logger.info(f"Discovered {len(projects)} JC_ project folders in '{REPO_DIR}'")
     except Exception as e:
+        logger.error(f"Error listing projects: {e}")
         print(f"Error listing projects: {e}")
     return [ALL_OPTION] + sorted(projects)
 
 def open_project(name, open_in_sourcetree=False):
     """Open the project in SourceTree or the selected editor"""
     try:
+        logger.info(f"open_project called: name='{name}', open_in_sourcetree={open_in_sourcetree}")
         if name == ALL_OPTION:
             # The All option opens in the configured editor only.
             target = ALL_OPTION_WORKSPACE if os.path.exists(ALL_OPTION_WORKSPACE) else REPO_DIR
+            logger.info(f"Opening All option with target: {target}")
             if utils.launch_editor(target):
+                logger.info("Editor launched for All option, destroying window")
                 root.destroy()
             return
 
         # Use common util to resolve the target (workspace or folder)
         target = utils.resolve_project_target(REPO_DIR, name)
+        logger.info(f"Resolved target for '{name}': {target}")
         
         if target:
             success = False
             if open_in_sourcetree:
+                logger.info(f"Launching SourceTree for: {target}")
                 success = utils.launch_sourcetree(target)
             else:
                 # Launch using common util
                 if useAntigravity:
+                    logger.info(f"Launching Antigravity for: {target}")
                     success = utils.launch_antigravity(target)
                 else:
+                    logger.info(f"Launching Editor for: {target}")
                     success = utils.launch_editor(target)
                 
             if success:
                 # Close the dashboard after launching
+                logger.info(f"Launch succeeded, closing window")
                 root.destroy()
+        else:
+            logger.warn(f"No target found for project: '{name}'")
     except Exception as e:
+        logger.error(f"Error opening project: {e}")
         print(f"Error opening project: {e}")
 
 def create_dashboard():
     global root
+    logger.info("Creating Pick JC Project Tkinter window...")
     root = tk.Tk()
+    utils.install_tk_exception_handler(root, logger)
+    utils.attach_event_logger(root, logger)
     root.title(TITLE)
     root.configure(bg="#262626")
     root.resizable(True, True)
@@ -105,16 +134,17 @@ def create_dashboard():
             activeforeground="white",
             relief=tk.FLAT,
             cursor="hand2",
-            command=lambda p=project: open_project(p),
             font=("Segoe UI", 10, "bold")
         )
         btn.grid(row=row, column=col, padx=PADDING_X, pady=PADDING_Y)
 
-        def on_shift_click(e, p=project):
-            open_project(p, open_in_sourcetree=(p != ALL_OPTION))
+        def on_click(e, p=project):
+            shift_pressed = bool(e.state & 0x1)
+            logger.info(f"Tile click: project='{p}', shift={shift_pressed}")
+            open_project(p, open_in_sourcetree=(shift_pressed and p != ALL_OPTION))
             return "break"
 
-        btn.bind("<Shift-Button-1>", on_shift_click)
+        btn.bind("<Button-1>", on_click)
         
         # Add hover effect
         def on_enter(e, b=btn, bg=hover_bg):
@@ -125,11 +155,14 @@ def create_dashboard():
         btn.bind("<Enter>", on_enter)
         btn.bind("<Leave>", on_leave)
 
-    # Center the window using common util
+    logger.info("Positioning window on second monitor...")
     utils.center_window_on_second_monitor(root)
 
-    # Escape to close
-    root.bind("<Escape>", lambda e: root.destroy())
+    def on_escape(e):
+        logger.info("Escape pressed, closing Pick JC Project...")
+        root.destroy()
+
+    root.bind_all("<Escape>", on_escape)
 
     # Build letter-to-project mapping: first project whose display name starts with each letter
     letter_map = {}
@@ -142,11 +175,16 @@ def create_dashboard():
     def on_key_press(e):
         key = e.char.lower() if e.char else ""
         if key in letter_map:
-            open_project(letter_map[key])
+            shift_pressed = bool(e.state & 0x1)
+            project_name = letter_map[key]
+            logger.info(f"Key pressed: '{key}' -> project '{project_name}', shift={shift_pressed}")
+            open_project(project_name, open_in_sourcetree=(shift_pressed and project_name != ALL_OPTION))
 
-    root.bind("<KeyPress>", on_key_press)
+    root.bind_all("<KeyPress>", on_key_press)
 
+    logger.info("Starting Tkinter mainloop (Pick JC Project window is now visible)...")
     root.mainloop()
+    logger.info("Pick JC Project closed cleanly.")
 
 if __name__ == "__main__":
     create_dashboard()
