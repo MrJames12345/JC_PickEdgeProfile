@@ -257,24 +257,30 @@ def split_camel_case(text):
     return re.sub(r'(?<!^)(?=[A-Z])', ' ', text)
 
 def get_antigravity_path():
-    """Find the absolute path to the antigravity executable"""
-    path = shutil.which('antigravity')
-    if not path:
-        # Fallback to common location if not in PATH
-        potential_path = os.path.expandvars(r'%LOCALAPPDATA%\Programs\Antigravity\bin\antigravity.cmd')
+    """Find the absolute path to the Antigravity IDE executable"""
+    path = shutil.which('antigravity-ide')
+    if path:
+        return path
+
+    for potential_path in (
+        os.path.expandvars(r'%LOCALAPPDATA%\Programs\Antigravity IDE\bin\antigravity-ide.cmd'),
+        os.path.expandvars(r'%LOCALAPPDATA%\Programs\Antigravity IDE\Antigravity IDE.exe'),
+    ):
         if os.path.exists(potential_path):
             return potential_path
-    return path or 'antigravity'
+
+    return 'antigravity-ide'
 
 def launch_antigravity(target_path):
-    """Launch Antigravity with the specified path"""
+    """Launch Antigravity IDE with the specified path"""
     try:
         antigravity_exe = get_antigravity_path()
+        log_info(f"Antigravity IDE executable: {antigravity_exe}")
         # Direct invocation with shell=True is reliable for Windows .cmd files
         subprocess.Popen(f'"{antigravity_exe}" "{target_path}"', shell=True)
         return True
     except Exception as e:
-        print(f"Error launching Antigravity: {e}")
+        print(f"Error launching Antigravity IDE: {e}")
         return False
 
 def get_cursor_path():
