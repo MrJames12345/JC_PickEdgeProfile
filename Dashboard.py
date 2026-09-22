@@ -14,9 +14,6 @@ import utils
 logger = utils.setup_logger(__file__)
 logger.info("Starting Dashboard...")
 
-# Toggle for launching Antigravity vs Cursor
-useAntigravity = False
-
 # Constants
 TITLE = "Dashboard"
 COLUMNS = 3
@@ -45,12 +42,7 @@ def launch_editor(name):
         
         # If target exists (either workspace file or project folder), launch it
         if target:
-            if useAntigravity:
-                logger.info(f"Launching Antigravity with target: {target}")
-                utils.launch_antigravity(target)
-            else:
-                logger.info(f"Launching Editor with target: {target}")
-                utils.launch_editor(target)
+            utils.launch_code_editor(target, code_editor)
         else:
             logger.warn(f"No target found for profile: '{name}'")
     except Exception as e:
@@ -149,14 +141,11 @@ try:
 except Exception as e:
     logger.error(f"Failed to load profiles.json: {e}")
 
-settings_file_path = os.path.join(base_path, "settings.json")
-logger.info(f"Loading settings from: {settings_file_path}")
-with open(settings_file_path, "r", encoding="utf-8") as settings_file:
-    settings_text = "\n".join(line.split("//", 1)[0] for line in settings_file)
-settings = json.loads(settings_text)
-browser_to_use = str(settings.get("browserToUser", "edge")).strip().lower()
-PROFILE_COMMAND_KEY = "commandChrome" if browser_to_use == "chrome" else "commandEdge"
-logger.info(f"Settings loaded: browserToUser='{browser_to_use}', PROFILE_COMMAND_KEY='{PROFILE_COMMAND_KEY}'")
+app_settings = utils.load_settings(base_path)
+browser_to_use = app_settings["browser_to_use"]
+PROFILE_COMMAND_KEY = app_settings["profile_command_key"]
+code_editor = app_settings["code_editor"]
+logger.info(f"Using browserToUser='{browser_to_use}', PROFILE_COMMAND_KEY='{PROFILE_COMMAND_KEY}', codeEditor='{code_editor}'")
 
 # Create the main window
 root = tk.Tk()

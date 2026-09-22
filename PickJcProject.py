@@ -12,9 +12,6 @@ import utils
 logger = utils.setup_logger(__file__)
 logger.info("Starting Pick JC Project...")
 
-# Toggle for launching Antigravity vs Cursor
-useAntigravity = False
-
 # Constants
 TITLE = "Pick JC Project"
 REPO_DIR = "C:\\repo"
@@ -34,6 +31,10 @@ else:
 
 os.chdir(base_path)
 logger.info(f"Base path and CWD: {base_path}")
+
+app_settings = utils.load_settings(base_path)
+code_editor = app_settings["code_editor"]
+logger.info(f"Using codeEditor='{code_editor}'")
 
 def get_jc_projects():
     """Get list of folders in C:\\repo starting with JC_"""
@@ -58,7 +59,7 @@ def open_project(name, open_in_sourcetree=False):
             # The All option opens in the configured editor only.
             target = ALL_OPTION_WORKSPACE if os.path.exists(ALL_OPTION_WORKSPACE) else REPO_DIR
             logger.info(f"Opening All option with target: {target}")
-            if utils.launch_editor(target):
+            if launch_code_editor(target):
                 logger.info("Editor launched for All option, destroying window")
                 root.destroy()
             return
@@ -73,13 +74,7 @@ def open_project(name, open_in_sourcetree=False):
                 logger.info(f"Launching SourceTree for: {target}")
                 success = utils.launch_sourcetree(target)
             else:
-                # Launch using common util
-                if useAntigravity:
-                    logger.info(f"Launching Antigravity for: {target}")
-                    success = utils.launch_antigravity(target)
-                else:
-                    logger.info(f"Launching Editor for: {target}")
-                    success = utils.launch_editor(target)
+                success = launch_code_editor(target)
                 
             if success:
                 # Close the dashboard after launching
@@ -90,6 +85,10 @@ def open_project(name, open_in_sourcetree=False):
     except Exception as e:
         logger.error(f"Error opening project: {e}")
         print(f"Error opening project: {e}")
+
+def launch_code_editor(target):
+    """Launch the editor selected by the codeEditor setting"""
+    return utils.launch_code_editor(target, code_editor)
 
 def create_dashboard():
     global root
