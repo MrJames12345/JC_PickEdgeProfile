@@ -307,6 +307,40 @@ def launch_editor(target_path):
     """Launch Cursor with the specified path"""
     return launch_cursor(target_path)
 
+def load_settings(base_path):
+    """Load settings.json for Dashboard and PickJcProject. // comments are ignored."""
+    settings_file_path = os.path.join(base_path, "settings.json")
+    log_info(f"Loading settings from: {settings_file_path}")
+    with open(settings_file_path, "r", encoding="utf-8") as settings_file:
+        settings_text = "\n".join(line.split("//", 1)[0] for line in settings_file)
+    settings = json.loads(settings_text)
+
+    browser_to_use = str(settings.get("browserToUser", "Edge")).strip().lower()
+    if browser_to_use not in ("edge", "chrome"):
+        log_warn(f"Unknown browserToUser '{browser_to_use}', falling back to Edge")
+        browser_to_use = "edge"
+
+    code_editor = str(settings.get("codeEditor", "Cursor")).strip().lower()
+    if code_editor not in ("cursor", "antigravity"):
+        log_warn(f"Unknown codeEditor '{code_editor}', falling back to Cursor")
+        code_editor = "cursor"
+
+    profile_command_key = "commandChrome" if browser_to_use == "chrome" else "commandEdge"
+    log_info(f"Settings loaded: browserToUser='{browser_to_use}', codeEditor='{code_editor}'")
+    return {
+        "browser_to_use": browser_to_use,
+        "profile_command_key": profile_command_key,
+        "code_editor": code_editor,
+    }
+
+def launch_code_editor(target_path, code_editor):
+    """Launch the editor selected by the codeEditor setting"""
+    if str(code_editor).strip().lower() == "antigravity":
+        log_info(f"Launching Antigravity with target: {target_path}")
+        return launch_antigravity(target_path)
+    log_info(f"Launching Cursor with target: {target_path}")
+    return launch_cursor(target_path)
+
 def get_sourcetree_path():
     """Find the absolute path to the SourceTree executable"""
     path = shutil.which('sourcetree')
