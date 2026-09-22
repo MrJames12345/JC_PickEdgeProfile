@@ -1,0 +1,52 @@
+[
+    {
+        "name": "CasellaWeb",
+        "commandEdge": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 2\"",
+        "commandChrome": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --profile-directory=\"Profile 1\""
+    },
+    {
+        "name": "CasellaKitchen",
+        "commandEdge": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 999\"",
+        "commandChrome": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --profile-directory=\"Profile 4\""
+    },
+    {
+        "name": "NGrave",
+        "commandEdge": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 3\"",
+        "commandChrome": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --profile-directory=\"Profile 5\""
+    },
+    {
+        "name": "YTMusicAutomator",
+        "commandEdge": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 4\"",
+        "commandChrome": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --profile-directory=\"Profile 6\""
+    },
+    {
+        "name": "AIMSInspection",
+        "commandEdge": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 8\"",
+        "commandChrome": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --profile-directory=\"Profile 7\""
+    },
+    {
+        "name": "AIMSProjectManagement",
+        "commandEdge": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 8\"",
+        "commandChrome": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --profile-directory=\"Profile 7\""
+    },
+    {
+        "name": "Veluro",
+        "commandEdge": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 13\"",
+        "commandChrome": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --profile-directory=\"Profile 8\""
+    },
+    {
+        "name": "habits_together",
+        "commandEdge": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 5\"",
+        "commandChrome": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --profile-directory=\"Profile 9\""
+    },
+    {
+        "name": "MoneyBoys",
+        "commandEdge": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 6\"",
+        "commandChrome": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --profile-directory=\"Profile 10\""
+    },
+    {
+        "name": "RollingAlarm",
+        "commandEdge": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 1000\"",
+        "commandChrome": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --profile-directory=\"Profile 11\""
+    }
+]

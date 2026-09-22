@@ -23,8 +23,9 @@ console.warn=(...a)=>{__wl("[WRN] "+a.map(String).join(" "));__origWarn(...a)};
  */
 
 import { execSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { createInterface } from "node:readline";
 
 function cmdExists(cmd) {
@@ -79,7 +80,7 @@ async function main() {
     }
 
     // Configuration
-    const PY_FILE = "C:\\repo\\JC_PickEdgeProfile\\Dashboard.py";
+    const PROFILES_FILE = "C:\\repo\\JC_PickEdgeProfile\\profiles.json";
     const IMAGES_DIR = "C:\\repo\\JC_PickEdgeProfile\\images";
 
     // 2. Prompt for Profile Name
@@ -88,23 +89,23 @@ async function main() {
       PROFILE_NAME = (await ask(rl, "Enter App Name (e.g. AIMSProjectManagement): ")).trim();
       if (!PROFILE_NAME) continue;
 
-      // Check if name exists in Dashboard.py
+      // Check if name exists in profiles.json
       try {
-        const content = readFileSync(PY_FILE, "utf8");
-        if (content.includes(`"name": "${PROFILE_NAME}"`)) {
+        const profiles = JSON.parse(readFileSync(PROFILES_FILE, "utf8"));
+        if (profiles.some((profile) => profile.name === PROFILE_NAME)) {
           console.log(
-            `[ERROR] Profile Name '${PROFILE_NAME}' already exists in Dashboard.py.`
+            `[ERROR] Profile Name '${PROFILE_NAME}' already exists in profiles.json.`
           );
           PROFILE_NAME = "";
         }
       } catch {
-        throw new Error("Failed to check Dashboard.py");
+        throw new Error("Failed to check profiles.json");
       }
     }
 
-    // 3. Verify PY_FILE exists
-    if (!existsSync(PY_FILE)) {
-      throw new Error(`Could not find ${PY_FILE}`);
+    // 3. Verify PROFILES_FILE exists
+    if (!existsSync(PROFILES_FILE)) {
+      throw new Error(`Could not find ${PROFILES_FILE}`);
     }
 
     // 4. Rename and move the image
@@ -123,18 +124,14 @@ async function main() {
 
     // 5. Run the Python setup script (ported inline from the bat)
     // The bat generates a temp Python script, let me do the same
-    console.log("Creating Edge profile, injecting bookmarks, and updating Dashboard.py...");
-
-    const { writeFileSync, unlinkSync } = await import("node:fs");
-    const { tmpdir } = await import("node:os");
-    const { join } = await import("node:path");
+    console.log("Creating Edge profile, injecting bookmarks, and updating profiles.json...");
 
     const SETUP_SCRIPT = join(tmpdir(), "setup_edge_profile.py");
 
     const pythonSetup = `
 import sys, re, os, json
 name = sys.argv[1]
-py_file = sys.argv[2]
+profiles_file = sys.argv[2]
 user_data_dir = os.path.join(os.environ['LOCALAPPDATA'], 'Microsoft', 'Edge', 'User Data')
 local_state_path = os.path.join(user_data_dir, 'Local State')
 max_num = 0
@@ -159,20 +156,14 @@ local_state.setdefault('profile', {}).setdefault('info_cache', {})[profile_dir_n
 profiles_order = local_state['profile'].setdefault('profiles_order', [])
 if profile_dir_name not in profiles_order: profiles_order.append(profile_dir_name)
 with open(local_state_path, 'w', encoding='utf-8') as f: json.dump(local_state, f, indent=3)
-with open(py_file, 'r', encoding='utf-8') as f: content = f.read()
-pattern = re.compile(r'(EDGE_PROFILES = \\[.*?)\\s*(\\])', re.DOTALL)
-match = pattern.search(content)
-if match:
-    middle = match.group(1).rstrip()
-    if middle.endswith('}'): middle += ','
-    cmd = '\\\\"C:\\\\\\\\Program Files (x86)\\\\\\\\Microsoft\\\\\\\\Edge\\\\\\\\Application\\\\\\\\msedge.exe\\\\" --profile-directory=\\\\"' + profile_dir_name + '\\\\"'
-    entry = '\\n    {\\n        "name": "' + name + '",\\n        "command": "' + cmd + '"\\n    }'
-    suffix = '\\n]'
-    new_content = content[:match.start()] + middle + entry + suffix + content[match.end():]
-    with open(py_file, 'w', encoding='utf-8') as f: f.write(new_content)
-    print(profile_dir_name)
-else:
-    print("FAILED")
+with open(profiles_file, 'r', encoding='utf-8') as f: profiles = json.load(f)
+cmd_edge = '"C:\\\\Program Files (x86)\\\\Microsoft\\\\Edge\\\\Application\\\\msedge.exe" --profile-directory="' + profile_dir_name + '"'
+cmd_chrome = '"C:\\\\Program Files\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe" --profile-directory="WWW"'
+profiles.append({"name": name, "commandEdge": cmd_edge, "commandChrome": cmd_chrome})
+with open(profiles_file, 'w', encoding='utf-8') as f:
+    json.dump(profiles, f, indent=4)
+    f.write('\\n')
+print(profile_dir_name)
 `;
 
     writeFileSync(SETUP_SCRIPT, pythonSetup);
@@ -180,14 +171,14 @@ else:
     let PROFILE_DIR = "";
     try {
       PROFILE_DIR = execSync(
-        `python "${SETUP_SCRIPT}" "${PROFILE_NAME}" "${PY_FILE}"`,
+        `python "${SETUP_SCRIPT}" "${PROFILE_NAME}" "${PROFILES_FILE}"`,
         { encoding: "utf8" }
       ).trim();
     } catch {}
     try { unlinkSync(SETUP_SCRIPT); } catch {}
 
     if (PROFILE_DIR === "FAILED" || !PROFILE_DIR) {
-      throw new Error("Failed to create Edge profile or update Dashboard.py.");
+      throw new Error("Failed to create Edge profile or update profiles.json.");
     }
 
     console.log();
@@ -195,7 +186,7 @@ else:
     console.log(`SUCCESS!`);
     console.log(`Profile '${PROFILE_NAME}' (${PROFILE_DIR}) was added.`);
     console.log(`Image saved to: ${TARGET_FILE}`);
-    console.log("Dashboard.py updated.");
+    console.log("profiles.json updated.");
     console.log("==========================================================");
     console.log();
 

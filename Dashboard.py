@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # Dashboard.py - Select Microsoft Edge profile using a grid of tiles
 
+import json
 import os
 import sys
 import tkinter as tk
@@ -9,6 +10,9 @@ import subprocess
 import threading
 from PIL import Image, ImageTk
 import utils
+
+logger = utils.setup_logger(__file__)
+logger.info("Starting Dashboard...")
 
 # Toggle for launching Antigravity vs Cursor
 useAntigravity = False
@@ -21,73 +25,20 @@ PADDING_Y = 2   # Further reduced vertical padding between tiles
 TILE_WIDTH = 180
 TILE_HEIGHT = 180
 
-# Edge profiles configuration
-EDGE_PROFILES = [
-    {
-        "name": "CasellaWeb",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 2\""
-    },
-    {
-        "name": "CasellaKitchen",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 999\""
-    },
-    {
-        "name": "NGrave",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 3\""
-    },
-    {
-        "name": "YTMusicAutomator",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 4\""
-    },
-    {
-        "name": "AIMSInspection",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 8\""
-    },
-    {
-        "name": "AIMSProjectManagement",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 8\""
-    },
-    {
-        "name": "Veluro",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 13\""
-    },
-    {
-        "name": "habits_together",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 5\""
-    },
-    {
-        "name": "MoneyBoys",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 6\""
-    },
-    # {
-    #     "name": "StickerBoys",
-    #     "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 7\""
-    # },
-    # {
-    #     "name": "ClashOfMemes",
-    #     "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 9\""
-    # },
-    # {
-    #     "name": "IceDestroysMovies",
-    #     "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 10\""
-    # },
-    {
-        "name": "RollingAlarm",
-        "command": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 1000\""
-    }
-]
-
-def launch_edge_profile(command):
-    """Launch Microsoft Edge with the specified profile"""
+def launch_browser(command):
+    """Launch the browser in settings.json with the selected profile"""
     try:
+        logger.info(f"launch_browser called with command: {command}")
         # Run the command in a separate thread to avoid blocking the UI
         subprocess.Popen(command, shell=True)
     except Exception as e:
-        print(f"Error launching Edge: {e}")
+        logger.error(f"Error launching browser: {e}")
+        print(f"Error launching browser: {e}")
 
 def launch_editor(name):
     """Launch the editor with the workspace file or folder if it exists"""
     try:
+        logger.info(f"launch_editor called for profile: '{name}'")
         # Use common util to resolve the target
         repo_path = "C:\\repo"
         target = utils.resolve_project_target(repo_path, name)
@@ -95,34 +46,47 @@ def launch_editor(name):
         # If target exists (either workspace file or project folder), launch it
         if target:
             if useAntigravity:
+                logger.info(f"Launching Antigravity with target: {target}")
                 utils.launch_antigravity(target)
             else:
+                logger.info(f"Launching Editor with target: {target}")
                 utils.launch_editor(target)
+        else:
+            logger.warn(f"No target found for profile: '{name}'")
     except Exception as e:
+        logger.error(f"Error launching editor: {e}")
         print(f"Error launching editor: {e}")
 
 def launch_sourcetree_for_profile(name):
     """Launch SourceTree for the matching project folder"""
     try:
+        logger.info(f"launch_sourcetree_for_profile called for: '{name}'")
         repo_path = "C:\\repo"
         target = utils.resolve_project_target(repo_path, name)
         if target:
+            logger.info(f"Resolved target for SourceTree: {target}")
             utils.launch_sourcetree(target)
+        else:
+            logger.warn(f"No target found to launch SourceTree for profile: '{name}'")
     except Exception as e:
+        logger.error(f"Error launching SourceTree: {e}")
         print(f"Error launching SourceTree: {e}")
 
 def select_profile(profile, ctrl_pressed=False, alt_pressed=False, shift_pressed=False):
     """Handle profile selection when a tile is clicked"""
+    logger.info(f"select_profile called: name='{profile.get('name')}', shift={shift_pressed}, ctrl={ctrl_pressed}, alt={alt_pressed}")
     # If Shift is pressed, open the matching project in SourceTree and close app.
     # Must run synchronously: launch_sourcetree waits on SourceTree, and a daemon
     # thread would be killed as soon as the process exits after root.destroy().
     if shift_pressed:
+        logger.info(f"Shift key active: Opening '{profile.get('name')}' in SourceTree and closing Dashboard")
         launch_sourcetree_for_profile(profile["name"])
         root.destroy()
         return
 
     # If Alt is pressed, try to open the workspace and close app
     if alt_pressed:
+        logger.info(f"Alt key active: Opening editor for '{profile.get('name')}' and closing Dashboard")
         launch_thread = threading.Thread(target=launch_editor, args=(profile["name"],))
         launch_thread.daemon = True
         launch_thread.start()
@@ -130,18 +94,21 @@ def select_profile(profile, ctrl_pressed=False, alt_pressed=False, shift_pressed
         root.destroy()
         return
 
-    # Launch Edge with the selected profile
-    launch_thread = threading.Thread(target=launch_edge_profile, args=(profile["command"],))
+    # Launch the browser selected in settings.json
+    logger.info(f"Launching browser command for '{profile.get('name')}': {profile[PROFILE_COMMAND_KEY]}")
+    launch_thread = threading.Thread(target=launch_browser, args=(profile[PROFILE_COMMAND_KEY],))
     launch_thread.daemon = True
     launch_thread.start()
 
     # If Ctrl is pressed, also try to launch the editor
     if ctrl_pressed:
+        logger.info(f"Ctrl key active: also launching editor for '{profile.get('name')}'")
         editor_thread = threading.Thread(target=launch_editor, args=(profile["name"],))
         editor_thread.daemon = True
         editor_thread.start()
 
     # Close the window
+    logger.info("Closing Dashboard window after profile selection")
     root.destroy()
 
 # Get the script directory
@@ -152,8 +119,49 @@ else:
     # Running as script
     base_path = os.path.dirname(os.path.abspath(__file__))
 
+logger.info(f"Base path: {base_path}")
+os.chdir(base_path)
+logger.info(f"Base path and CWD: {base_path}")
+
+profiles_file_path = os.path.join(base_path, "profiles.json")
+logger.info(f"Loading profiles from: {profiles_file_path}")
+EDGE_PROFILES = []
+try:
+    with open(profiles_file_path, "r", encoding="utf-8") as profiles_file:
+        raw_profiles = profiles_file.read()
+    try:
+        EDGE_PROFILES = json.loads(raw_profiles)
+    except json.JSONDecodeError as json_err:
+        logger.warn(f"JSONDecodeError in profiles.json: {json_err}. Attempting recovery...")
+        if hasattr(json_err, 'pos') and json_err.pos > 0:
+            EDGE_PROFILES = json.loads(raw_profiles[:json_err.pos])
+            logger.info(f"Successfully recovered {len(EDGE_PROFILES)} profiles.")
+            try:
+                with open(profiles_file_path, "w", encoding="utf-8") as f:
+                    json.dump(EDGE_PROFILES, f, indent=4)
+                    f.write("\n")
+                logger.info("Self-healed profiles.json on disk.")
+            except Exception as write_err:
+                logger.warn(f"Could not rewrite profiles.json: {write_err}")
+        else:
+            raise
+    logger.info(f"Successfully loaded {len(EDGE_PROFILES)} profiles from profiles.json")
+except Exception as e:
+    logger.error(f"Failed to load profiles.json: {e}")
+
+settings_file_path = os.path.join(base_path, "settings.json")
+logger.info(f"Loading settings from: {settings_file_path}")
+with open(settings_file_path, "r", encoding="utf-8") as settings_file:
+    settings_text = "\n".join(line.split("//", 1)[0] for line in settings_file)
+settings = json.loads(settings_text)
+browser_to_use = str(settings.get("browserToUser", "edge")).strip().lower()
+PROFILE_COMMAND_KEY = "commandChrome" if browser_to_use == "chrome" else "commandEdge"
+logger.info(f"Settings loaded: browserToUser='{browser_to_use}', PROFILE_COMMAND_KEY='{PROFILE_COMMAND_KEY}'")
+
 # Create the main window
 root = tk.Tk()
+utils.install_tk_exception_handler(root, logger)
+utils.attach_event_logger(root, logger)
 root.title(TITLE)
 # Let the window size adjust to its contents
 root.resizable(True, True)
@@ -309,13 +317,20 @@ window_width = (TILE_WIDTH + 2 * PADDING_X) * COLUMNS + 40  # Add padding for th
 window_height = (TILE_HEIGHT + 2 * PADDING_Y) * num_rows + 50  # Adjusted for increased bottom padding
 
 # Set the window size
+logger.info(f"Calculated window size: {window_width}x{window_height}")
 root.geometry(f"{window_width}x{window_height}")
 
-# Position the window on the second monitor using common util
+# Positioning also raises the window and keeps it topmost briefly so coordinates stay put.
+logger.info("Positioning window on second monitor...")
 utils.center_window_on_second_monitor(root)
 
-# Bind Escape key to close the window
-root.bind("<Escape>", lambda event: root.destroy())
+def on_escape(event):
+    logger.info("Escape key pressed, closing Dashboard...")
+    root.destroy()
+
+root.bind_all("<Escape>", on_escape)
 
 # Start the main loop
+logger.info("Starting Tkinter mainloop (window is now visible)...")
 root.mainloop()
+logger.info("Dashboard closed cleanly.")
