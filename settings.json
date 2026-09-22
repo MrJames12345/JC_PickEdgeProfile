@@ -1,3 +1,4 @@
 {
-    "browserToUser": "Chrome" // Edge | Chrome
+    "browserToUser": "Chrome", // Edge | Chrome
+    "codeEditor": "Antigravity" // Cursor | Antigravity
 }
