@@ -104,9 +104,20 @@ def create_dashboard():
     main_frame = tk.Frame(root, padx=20, pady=20, bg="#262626")
     main_frame.pack(fill=tk.BOTH, expand=True)
 
-    # Label for title
-    header = tk.Label(main_frame, text="Select JC Project", font=("Segoe UI", 14, "bold"), fg="white", bg="#262626", pady=10)
-    header.pack()
+    # Header bar with title centered and editor toggle at top right
+    header_frame = tk.Frame(main_frame, bg="#262626")
+    header_frame.pack(fill=tk.X, pady=(0, 10))
+
+    header = tk.Label(header_frame, text="Select JC Project", font=("Segoe UI", 14, "bold"), fg="white", bg="#262626", pady=10)
+    header.pack(expand=True)
+
+    def on_editor_changed(new_editor):
+        global code_editor
+        code_editor = new_editor
+        logger.info(f"Pick JC Project code_editor updated to: '{code_editor}'")
+
+    editor_toggle = utils.create_editor_toggle(header_frame, base_path, code_editor, on_change=on_editor_changed)
+    editor_toggle.place(relx=1.0, rely=0.5, anchor=tk.E)
 
     # Grid frame
     grid_frame = tk.Frame(main_frame, bg="#262626")
@@ -139,7 +150,8 @@ def create_dashboard():
 
         def on_click(e, p=project):
             shift_pressed = bool(e.state & 0x1)
-            logger.info(f"Tile click: project='{p}', shift={shift_pressed}")
+            alt_pressed = bool(e.state & 0x20000)
+            logger.info(f"Tile click: project='{p}', shift={shift_pressed}, alt={alt_pressed}")
             open_project(p, open_in_sourcetree=(shift_pressed and p != ALL_OPTION))
             return "break"
 

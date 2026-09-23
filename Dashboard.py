@@ -35,7 +35,7 @@ def launch_browser(command):
 def launch_editor(name):
     """Launch the editor with the workspace file or folder if it exists"""
     try:
-        logger.info(f"launch_editor called for profile: '{name}'")
+        logger.info(f"launch_editor called for profile: '{name}' using editor: '{code_editor}'")
         # Use common util to resolve the target
         repo_path = "C:\\repo"
         target = utils.resolve_project_target(repo_path, name)
@@ -177,7 +177,17 @@ if os.path.exists(icon_path):
 main_frame = tk.Frame(root, padx=20, pady=20, bg="#262626")  # Standard padding
 main_frame.pack(fill=tk.BOTH, expand=True, padx=0, pady=(0, 10))  # Add extra bottom padding in pack
 
-# No title needed
+# Top bar containing editor toggle (Cursor on left, Antigravity on right)
+top_bar = tk.Frame(main_frame, bg="#262626")
+top_bar.pack(fill=tk.X, side=tk.TOP, pady=(0, 10))
+
+def on_editor_changed(new_editor):
+    global code_editor
+    code_editor = new_editor
+    logger.info(f"Dashboard code_editor updated to: '{code_editor}'")
+
+editor_toggle = utils.create_editor_toggle(top_bar, base_path, code_editor, on_change=on_editor_changed)
+editor_toggle.pack(side=tk.RIGHT)
 
 # Create a frame for the grid of tiles
 grid_frame = tk.Frame(main_frame, bg="#262626")
@@ -303,7 +313,7 @@ num_rows = (len(EDGE_PROFILES) + COLUMNS - 1) // COLUMNS
 
 # Calculate the window width and height based on the grid
 window_width = (TILE_WIDTH + 2 * PADDING_X) * COLUMNS + 40  # Add padding for the main frame
-window_height = (TILE_HEIGHT + 2 * PADDING_Y) * num_rows + 50  # Adjusted for increased bottom padding
+window_height = (TILE_HEIGHT + 2 * PADDING_Y) * num_rows + 50 + 40  # Adjusted for top bar + increased bottom padding
 
 # Set the window size
 logger.info(f"Calculated window size: {window_width}x{window_height}")
