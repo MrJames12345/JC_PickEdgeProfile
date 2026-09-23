@@ -10,6 +10,8 @@ import sys
 import threading
 import ctypes
 from ctypes import wintypes
+import tkinter as tk
+from PIL import Image, ImageTk
 
 class _RECT(ctypes.Structure):
     _fields_ = [
@@ -346,6 +348,214 @@ def launch_code_editor(target_path, code_editor):
         return launch_antigravity(target_path)
     log_info(f"Launching Cursor with target: {target_path}")
     return launch_cursor(target_path)
+
+def save_code_editor_setting(base_path, new_editor):
+    """Save codeEditor setting to settings.json while preserving comments and formatting."""
+    settings_file_path = os.path.join(base_path, "settings.json")
+    val_to_write = "Antigravity" if str(new_editor).strip().lower() == "antigravity" else "Cursor"
+    log_info(f"Saving codeEditor='{val_to_write}' to {settings_file_path}")
+
+    try:
+        if os.path.exists(settings_file_path):
+            with open(settings_file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            pattern = r'("codeEditor"\s*:\s*)"[^"]*"'
+            if re.search(pattern, content):
+                new_content = re.sub(pattern, rf'\g<1>"{val_to_write}"', content)
+                with open(settings_file_path, "w", encoding="utf-8") as f:
+                    f.write(new_content)
+                log_info(f"Updated codeEditor in {settings_file_path} to '{val_to_write}'")
+                return val_to_write
+
+        # Fallback if file does not exist or pattern not found
+        settings_data = {}
+        if os.path.exists(settings_file_path):
+            try:
+                with open(settings_file_path, "r", encoding="utf-8") as f:
+                    cleaned = "\n".join(line.split("//", 1)[0] for line in f)
+                    settings_data = json.loads(cleaned)
+            except Exception:
+                settings_data = {}
+        settings_data["codeEditor"] = val_to_write
+        with open(settings_file_path, "w", encoding="utf-8") as f:
+            json.dump(settings_data, f, indent=4)
+        log_info(f"Wrote fallback settings.json with codeEditor='{val_to_write}'")
+        return val_to_write
+    except Exception as e:
+        log_error(f"Error saving codeEditor to {settings_file_path}: {e}")
+        return val_to_write
+
+class _EditorToggleTooltip:
+    def __init__(self, widget, text):
+        self.widget = widget
+        self.text = text
+        self.tip_window = None
+        widget.bind("<Enter>", self.show_tip, add="+")
+        widget.bind("<Leave>", self.hide_tip, add="+")
+
+    def show_tip(self, event=None):
+        if self.tip_window or not self.text:
+            return
+        x = self.widget.winfo_rootx() + 5
+        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 5
+        self.tip_window = tw = tk.Toplevel(self.widget)
+        tw.wm_overrideredirect(True)
+        tw.wm_geometry(f"+{x}+{y}")
+        label = tk.Label(
+            tw, text=self.text, justify=tk.LEFT,
+            background="#181818", foreground="#ffffff",
+            relief=tk.SOLID, borderwidth=1,
+            highlightbackground="#444444", highlightthickness=1,
+            font=("Segoe UI", 9, "normal"), padx=6, pady=3
+        )
+        label.pack(ipadx=1)
+
+    def hide_tip(self, event=None):
+        tw = self.tip_window
+        self.tip_window = None
+        if tw:
+            try:
+                tw.destroy()
+            except Exception:
+                pass
+
+def create_editor_toggle(parent, base_path, initial_editor, on_change=None):
+    """
+    Creates a modern pill toggle with Cursor on the left and Antigravity on the right.
+    Clicking either side updates settings.json and calls on_change(new_editor).
+    """
+    current_editor = [str(initial_editor).strip().lower()]
+
+    container = tk.Frame(
+        parent,
+        bg="#181818",
+        bd=1,
+        relief=tk.SOLID,
+        highlightbackground="#3a3a3a",
+        highlightcolor="#3a3a3a",
+        highlightthickness=1,
+        padx=2,
+        pady=2,
+        cursor="hand2",
+    )
+
+    cursor_path = os.path.join(base_path, "images", "Cursor.png")
+    ag_path = os.path.join(base_path, "images", "Antigravity.png")
+    icon_size = (20, 20)
+
+    def load_icon_variants(img_path):
+        base_img = Image.open(img_path).convert("RGBA")
+        resized = base_img.resize(icon_size, Image.Resampling.LANCZOS)
+
+        # Active icon (100% opacity)
+        active_tk = ImageTk.PhotoImage(resized)
+
+        # Inactive icon (dimmed / 40% opacity)
+        inactive_img = resized.copy()
+        r, g, b, a = inactive_img.split()
+        a = a.point(lambda p: int(p * 0.40))
+        inactive_img.putalpha(a)
+        inactive_tk = ImageTk.PhotoImage(inactive_img)
+
+        # Hover icon (75% opacity)
+        hover_img = resized.copy()
+        r, g, b, a = hover_img.split()
+        a = a.point(lambda p: int(p * 0.75))
+        hover_img.putalpha(a)
+        hover_tk = ImageTk.PhotoImage(hover_img)
+
+        return active_tk, inactive_tk, hover_tk
+
+    cursor_active, cursor_inactive, cursor_hover = load_icon_variants(cursor_path)
+    ag_active, ag_inactive, ag_hover = load_icon_variants(ag_path)
+
+    # Keep image references on the container to prevent garbage collection
+    container.images = {
+        "cursor_active": cursor_active,
+        "cursor_inactive": cursor_inactive,
+        "cursor_hover": cursor_hover,
+        "ag_active": ag_active,
+        "ag_inactive": ag_inactive,
+        "ag_hover": ag_hover,
+    }
+
+    BG_INACTIVE = "#181818"
+    BG_ACTIVE = "#363b45"
+    BG_HOVER = "#25282e"
+
+    cursor_btn = tk.Label(
+        container,
+        bd=0,
+        padx=5,
+        pady=3,
+        cursor="hand2",
+    )
+    cursor_btn.pack(side=tk.LEFT, padx=1)
+
+    ag_btn = tk.Label(
+        container,
+        bd=0,
+        padx=5,
+        pady=3,
+        cursor="hand2",
+    )
+    ag_btn.pack(side=tk.LEFT, padx=1)
+
+    _EditorToggleTooltip(cursor_btn, "Use Cursor (Alt+Click)")
+    _EditorToggleTooltip(ag_btn, "Use Antigravity (Alt+Click)")
+
+    def update_visuals():
+        is_cursor = (current_editor[0] == "cursor")
+        if is_cursor:
+            cursor_btn.configure(image=cursor_active, bg=BG_ACTIVE)
+            ag_btn.configure(image=ag_inactive, bg=BG_INACTIVE)
+        else:
+            cursor_btn.configure(image=cursor_inactive, bg=BG_INACTIVE)
+            ag_btn.configure(image=ag_active, bg=BG_ACTIVE)
+
+    def set_editor(new_val):
+        normalized = str(new_val).strip().lower()
+        if current_editor[0] == normalized:
+            return
+        current_editor[0] = normalized
+        update_visuals()
+        save_code_editor_setting(base_path, normalized)
+        if on_change:
+            on_change(normalized)
+
+    def toggle_editor(e=None):
+        new_val = "antigravity" if current_editor[0] == "cursor" else "cursor"
+        set_editor(new_val)
+
+    def on_cursor_enter(e):
+        if current_editor[0] != "cursor":
+            cursor_btn.configure(bg=BG_HOVER, image=cursor_hover)
+
+    def on_cursor_leave(e):
+        if current_editor[0] != "cursor":
+            cursor_btn.configure(bg=BG_INACTIVE, image=cursor_inactive)
+
+    def on_ag_enter(e):
+        if current_editor[0] != "antigravity":
+            ag_btn.configure(bg=BG_HOVER, image=ag_hover)
+
+    def on_ag_leave(e):
+        if current_editor[0] != "antigravity":
+            ag_btn.configure(bg=BG_INACTIVE, image=ag_inactive)
+
+    container.bind("<Button-1>", toggle_editor)
+    
+    cursor_btn.bind("<Enter>", on_cursor_enter, add="+")
+    cursor_btn.bind("<Leave>", on_cursor_leave, add="+")
+    cursor_btn.bind("<Button-1>", toggle_editor)
+
+    ag_btn.bind("<Enter>", on_ag_enter, add="+")
+    ag_btn.bind("<Leave>", on_ag_leave, add="+")
+    ag_btn.bind("<Button-1>", toggle_editor)
+
+
+    update_visuals()
+    return container
 
 def get_sourcetree_path():
     """Find the absolute path to the SourceTree executable"""
