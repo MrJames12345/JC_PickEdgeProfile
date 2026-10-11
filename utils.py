@@ -907,4 +907,23 @@ def center_window_on_second_monitor(window):
     except Exception as e:
         log_warn(f"Post-placement verification error: {e}")
 
+def char_from_key_event(event):
+    """
+    Return a printable character from a KeyPress event if not pressed with Ctrl or Alt.
+    Handles Windows NumLock state (0x8) gracefully so NumLock doesn't register as Alt.
+    """
+    ctrl = bool(event.state & 0x4)
+    if sys.platform == "win32":
+        alt = bool(event.state & 0x20000)
+    else:
+        alt = bool(event.state & 0x8) or bool(event.state & 0x20000)
+    if ctrl or alt:
+        return ""
+    if event.char and event.char.isprintable():
+        return event.char
+    keysym = event.keysym or ""
+    if len(keysym) == 1 and keysym.isprintable():
+        return keysym
+    return ""
+
 

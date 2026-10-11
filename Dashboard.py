@@ -36,6 +36,7 @@ def launch_editor(name):
     """Launch the editor with the workspace file or folder if it exists"""
     try:
         logger.info(f"launch_editor called for profile: '{name}' using editor: '{code_editor}'")
+
         # Use common util to resolve the target
         repo_path = "C:\\repo"
         target = utils.resolve_project_target(repo_path, name)
@@ -73,7 +74,8 @@ def select_profile(profile, ctrl_pressed=False, alt_pressed=False, shift_pressed
     if shift_pressed:
         logger.info(f"Shift key active: Opening '{profile.get('name')}' in SourceTree and closing Dashboard")
         launch_sourcetree_for_profile(profile["name"])
-        root.destroy()
+        if root:
+            root.destroy()
         return
 
     # If Alt is pressed, try to open the workspace and close app
@@ -83,7 +85,8 @@ def select_profile(profile, ctrl_pressed=False, alt_pressed=False, shift_pressed
         launch_thread.daemon = True
         launch_thread.start()
         # Close the window regardless of whether the editor was launched
-        root.destroy()
+        if root:
+            root.destroy()
         return
 
     # Launch the browser selected in settings.json
@@ -92,16 +95,19 @@ def select_profile(profile, ctrl_pressed=False, alt_pressed=False, shift_pressed
     launch_thread.daemon = True
     launch_thread.start()
 
-    # If Ctrl is pressed, also try to launch the editor
+    # If Ctrl is pressed, also launch the editor and SourceTree
     if ctrl_pressed:
-        logger.info(f"Ctrl key active: also launching editor for '{profile.get('name')}'")
+        logger.info(f"Ctrl key active: also launching editor and SourceTree for '{profile.get('name')}'")
         editor_thread = threading.Thread(target=launch_editor, args=(profile["name"],))
         editor_thread.daemon = True
         editor_thread.start()
+        # Synchronous for the same reason as the Shift branch above.
+        launch_sourcetree_for_profile(profile["name"])
 
     # Close the window
     logger.info("Closing Dashboard window after profile selection")
-    root.destroy()
+    if root:
+        root.destroy()
 
 # Get the script directory
 if getattr(sys, 'frozen', False):
@@ -147,189 +153,349 @@ PROFILE_COMMAND_KEY = app_settings["profile_command_key"]
 code_editor = app_settings["code_editor"]
 logger.info(f"Using browserToUser='{browser_to_use}', PROFILE_COMMAND_KEY='{PROFILE_COMMAND_KEY}', codeEditor='{code_editor}'")
 
-# Create the main window
-root = tk.Tk()
-utils.install_tk_exception_handler(root, logger)
-utils.attach_event_logger(root, logger)
-root.title(TITLE)
-# Let the window size adjust to its contents
-root.resizable(True, True)
-# Set the background color to #262626 (dark gray)
-root.configure(bg="#262626")
+root = None
 
-# Set the window icon
-# Use Edge.png as the window favicon
-icon_path = os.path.join(base_path, "images", "Edge.png")
-# If Edge.png doesn't exist, fall back to CK.png
-if not os.path.exists(icon_path):
-    icon_path = os.path.join(base_path, "images", "CK.png")
+def create_dashboard():
+    global root
+    # Create the main window
+    root = tk.Tk()
+    utils.install_tk_exception_handler(root, logger)
+    utils.attach_event_logger(root, logger)
+    root.title(TITLE)
+    # Let the window size adjust to its contents
+    root.resizable(True, True)
+    # Set the background color to #262626 (dark gray)
+    root.configure(bg="#262626")
 
-if os.path.exists(icon_path):
-    try:
-        # Load the icon image
-        icon = tk.PhotoImage(file=icon_path)
-        # Set the window icon
-        root.iconphoto(True, icon)
-    except Exception as e:
-        print(f"Error setting window icon: {e}")
+    # Set the window icon
+    # Use Edge.png as the window favicon
+    icon_path = os.path.join(base_path, "images", "Edge.png")
+    # If Edge.png doesn't exist, fall back to CK.png
+    if not os.path.exists(icon_path):
+        icon_path = os.path.join(base_path, "images", "CK.png")
 
-# Create main frame with padding
-main_frame = tk.Frame(root, padx=20, pady=20, bg="#262626")  # Standard padding
-main_frame.pack(fill=tk.BOTH, expand=True, padx=0, pady=(0, 10))  # Add extra bottom padding in pack
+    if os.path.exists(icon_path):
+        try:
+            # Load the icon image
+            icon = tk.PhotoImage(file=icon_path)
+            # Set the window icon
+            root.iconphoto(True, icon)
+        except Exception as e:
+            print(f"Error setting window icon: {e}")
 
-# Top bar containing editor toggle (Cursor on left, Antigravity on right)
-top_bar = tk.Frame(main_frame, bg="#262626")
-top_bar.pack(fill=tk.X, side=tk.TOP, pady=(0, 10))
+    # Create main frame with padding
+    main_frame = tk.Frame(root, padx=20, pady=20, bg="#262626")  # Standard padding
+    main_frame.pack(fill=tk.BOTH, expand=True, padx=0, pady=(0, 10))  # Add extra bottom padding in pack
 
-def on_editor_changed(new_editor):
-    global code_editor
-    code_editor = new_editor
-    logger.info(f"Dashboard code_editor updated to: '{code_editor}'")
+    # Top bar / header frame with fixed height so title/search swap does not shift grid
+    HEADER_HEIGHT = 48
+    header_frame = tk.Frame(main_frame, bg="#262626", height=HEADER_HEIGHT)
+    header_frame.pack(fill=tk.X, side=tk.TOP, pady=(0, 10))
+    header_frame.pack_propagate(False)
 
-editor_toggle = utils.create_editor_toggle(top_bar, base_path, code_editor, on_change=on_editor_changed)
-editor_toggle.pack(side=tk.RIGHT)
-
-# Create a frame for the grid of tiles
-grid_frame = tk.Frame(main_frame, bg="#262626")
-grid_frame.pack(fill=tk.BOTH, expand=True)
-
-# Create tiles for each profile
-row = 0
-col = 0
-
-# Calculate total number of profiles and items in the last row
-total_profiles = len(EDGE_PROFILES)
-last_row_items = total_profiles % COLUMNS
-if last_row_items == 0:
-    last_row_items = COLUMNS  # If last row is full
-
-# Calculate the starting column for the last row to center it
-last_row_start_col = (COLUMNS - last_row_items) // 2 if last_row_items < COLUMNS else 0
-
-for i, profile in enumerate(EDGE_PROFILES):
-    # Create a frame for each tile
-    tile_frame = tk.Frame(
-        grid_frame,
-        width=TILE_WIDTH,
-        height=TILE_HEIGHT,
-        bd=0,  # No border
-        relief=tk.FLAT,  # No relief
+    list_header = tk.Label(
+        header_frame,
+        text="Select Profile",
+        font=("Segoe UI", 14, "bold"),
+        fg="white",
+        bg="#262626",
         cursor="hand2",
-        bg="#262626"  # Match the main background color
+    )
+    list_header.place(relx=0.5, rely=0.5, anchor="center")
+
+    search_entry = tk.Entry(
+        header_frame,
+        font=("Segoe UI", 14, "bold"),
+        fg="white",
+        bg="#262626",
+        insertbackground="white",
+        relief=tk.FLAT,
+        highlightthickness=0,
+        bd=0,
+        justify=tk.CENTER,
     )
 
-    # Check if this is the last row and adjust column for centering
-    current_row = i // COLUMNS
-    current_col = i % COLUMNS
+    def on_editor_changed(new_editor):
+        global code_editor
+        code_editor = new_editor
+        logger.info(f"Dashboard code_editor updated to: '{code_editor}'")
 
-    # If this is the last row and we need to center it
-    if current_row == total_profiles // COLUMNS and last_row_items < COLUMNS:
-        current_col = last_row_start_col + (i % COLUMNS)
+    editor_toggle = utils.create_editor_toggle(header_frame, base_path, code_editor, on_change=on_editor_changed)
+    editor_toggle.place(relx=1.0, rely=0.5, anchor=tk.E)
 
-    tile_frame.grid(row=current_row, column=current_col, padx=PADDING_X, pady=PADDING_Y)
-    tile_frame.pack_propagate(False)  # Prevent the frame from shrinking
+    # Create a frame for the grid of tiles
+    grid_frame = tk.Frame(main_frame, bg="#262626")
+    grid_frame.pack(fill=tk.BOTH, expand=True)
 
-    # Try to load the image based on profile name
-    try:
-        # Get the profile name and use it to find the corresponding image
-        profile_name = profile["name"]
-        # Look for <name>.png in the images subdirectory
-        image_path = os.path.join(base_path, "images", f"{profile_name}.png")
+    search_state = {"mode": False, "query": ""}
+    matching_profiles = []
+    image_cache = {}
 
-        # If the specific image doesn't exist, try AIMSInspection.png for AIMSProjectManagement
-        if not os.path.exists(image_path):
-            if profile_name == "AIMSProjectManagement":
-                image_path = os.path.join(base_path, "images", "AIMSInspection.png")
-            else:
+    def get_profile_photo_image(profile_name):
+        if profile_name in image_cache:
+            return image_cache[profile_name]
+
+        img = None
+        try:
+            image_path = os.path.join(base_path, "images", f"{profile_name}.png")
+            if not os.path.exists(image_path):
+                if profile_name == "AIMSProjectManagement":
+                    image_path = os.path.join(base_path, "images", "AIMSInspection.png")
+                else:
+                    image_path = os.path.join(base_path, "images", "CK.png")
+            if not os.path.exists(image_path):
                 image_path = os.path.join(base_path, "images", "CK.png")
 
-        # If the image still doesn't exist, fall back to CK.png
-        if not os.path.exists(image_path):
-            image_path = os.path.join(base_path, "images", "CK.png")
-
-        if os.path.exists(image_path):
-            # Load the image using PIL for high-quality resizing
-            pil_image = Image.open(image_path)
-
-            # Calculate the size to fit within the tile while maintaining aspect ratio
-            # Use a slightly smaller size to ensure the image fits nicely within the tile
-            max_width = TILE_WIDTH - 20  # Leave some padding
-            max_height = TILE_HEIGHT - 20  # Leave some padding
-
-            # Calculate the scaling factor to maintain aspect ratio
-            width_ratio = max_width / pil_image.width
-            height_ratio = max_height / pil_image.height
-            scale_factor = min(width_ratio, height_ratio)
-
-            # Only resize if the image is larger than the tile
-            if scale_factor < 1:
-                new_width = int(pil_image.width * scale_factor)
-                new_height = int(pil_image.height * scale_factor)
-                # Use LANCZOS for high-quality resizing
-                pil_image = pil_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
-
-            # Convert PIL image to tkinter PhotoImage
-            img = ImageTk.PhotoImage(pil_image)
-        else:
-            # Create a placeholder if image doesn't exist
+            if os.path.exists(image_path):
+                pil_image = Image.open(image_path)
+                max_width = TILE_WIDTH - 20
+                max_height = TILE_HEIGHT - 20
+                width_ratio = max_width / pil_image.width
+                height_ratio = max_height / pil_image.height
+                scale_factor = min(width_ratio, height_ratio)
+                if scale_factor < 1:
+                    new_width = int(pil_image.width * scale_factor)
+                    new_height = int(pil_image.height * scale_factor)
+                    pil_image = pil_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                img = ImageTk.PhotoImage(pil_image)
+        except Exception as e:
+            logger.error(f"Error loading image for '{profile_name}': {e}")
             img = None
-    except Exception as e:
-        print(f"Error loading image: {e}")
-        img = None
 
-    # Define click handler function that detects Ctrl, Alt, and Shift keys
-    def handle_click(event, prof=profile):
-        ctrl_pressed = bool(event.state & 0x4)  # Check if Ctrl key is pressed
-        alt_pressed = bool(event.state & 0x20000)  # Check if Alt key is pressed (use only the reliable mask)
-        shift_pressed = bool(event.state & 0x1)  # Check if Shift key is pressed
-        select_profile(prof, ctrl_pressed, alt_pressed, shift_pressed)
+        image_cache[profile_name] = img
+        return img
 
-    # Add image or placeholder
-    if img:
-        # Create a label with the image and center it in the tile
-        # Use system background color to match the tile frame
-        image_label = tk.Label(tile_frame, image=img, bg=tile_frame.cget('bg'))
-        image_label.image = img  # Keep a reference to prevent garbage collection
-        # Use place to center the image in the tile
-        image_label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-        # Bind click event to the image
-        image_label.bind("<Button-1>", handle_click)
-    else:
-        # Create a colored rectangle as placeholder
-        canvas = tk.Canvas(tile_frame, width=TILE_WIDTH-20, height=TILE_HEIGHT-20, bg="#7ec7d2")
-        canvas.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-        # Bind click event to the canvas
-        canvas.bind("<Button-1>", handle_click)
+    def populate_tiles():
+        nonlocal matching_profiles
+        for child in grid_frame.winfo_children():
+            child.destroy()
 
-    # Bind click event to the entire tile
-    tile_frame.bind("<Button-1>", handle_click)
+        query = (search_state["query"] or "").strip().lower()
+        matching = []
+        for profile in EDGE_PROFILES:
+            if query:
+                raw_name = profile.get("name", "").lower()
+                display_name = utils.split_camel_case(profile.get("name", "").replace("_", " ")).lower()
+                clean_name = profile.get("name", "").replace("_", "").lower()
+                if query not in raw_name and query not in display_name and query not in clean_name:
+                    continue
+            matching.append(profile)
 
-# Calculate the window size based on the grid
-# Update the grid layout to ensure all widgets are properly sized
-grid_frame.update_idletasks()
+        matching_profiles = matching
+        total_profiles = len(matching)
+        if total_profiles == 0:
+            no_matches = tk.Label(
+                grid_frame,
+                text="No matching profiles",
+                font=("Segoe UI", 11),
+                fg="#888888",
+                bg="#262626",
+            )
+            no_matches.grid(row=0, column=0, columnspan=COLUMNS, pady=40)
+            return
 
-# Get the number of rows based on the number of profiles and columns
-num_rows = (len(EDGE_PROFILES) + COLUMNS - 1) // COLUMNS
+        last_row_items = total_profiles % COLUMNS
+        if last_row_items == 0:
+            last_row_items = COLUMNS
 
-# Calculate the window width and height based on the grid
-window_width = (TILE_WIDTH + 2 * PADDING_X) * COLUMNS + 40  # Add padding for the main frame
-window_height = (TILE_HEIGHT + 2 * PADDING_Y) * num_rows + 50 + 40  # Adjusted for top bar + increased bottom padding
+        last_row_start_col = (COLUMNS - last_row_items) // 2 if last_row_items < COLUMNS else 0
 
-# Set the window size
-logger.info(f"Calculated window size: {window_width}x{window_height}")
-root.geometry(f"{window_width}x{window_height}")
+        for i, profile in enumerate(matching):
+            tile_frame = tk.Frame(
+                grid_frame,
+                width=TILE_WIDTH,
+                height=TILE_HEIGHT,
+                bd=0,
+                relief=tk.FLAT,
+                cursor="hand2",
+                bg="#262626",
+            )
+            current_row = i // COLUMNS
+            current_col = i % COLUMNS
+            if current_row == total_profiles // COLUMNS and last_row_items < COLUMNS:
+                current_col = last_row_start_col + (i % COLUMNS)
 
-# Positioning also raises the window and keeps it topmost briefly so coordinates stay put.
-logger.info("Positioning window on second monitor...")
-utils.center_window_on_second_monitor(root)
+            tile_frame.grid(row=current_row, column=current_col, padx=PADDING_X, pady=PADDING_Y)
+            tile_frame.pack_propagate(False)
 
-def on_escape(event):
-    logger.info("Escape key pressed, closing Dashboard...")
-    root.destroy()
+            def handle_click(event, prof=profile):
+                ctrl_pressed = bool(event.state & 0x4)
+                alt_pressed = bool(event.state & 0x20000)
+                shift_pressed = bool(event.state & 0x1)
+                select_profile(prof, ctrl_pressed, alt_pressed, shift_pressed)
 
-root.bind_all("<Escape>", on_escape)
+            img = get_profile_photo_image(profile["name"])
+            if img:
+                image_label = tk.Label(tile_frame, image=img, bg=tile_frame.cget("bg"))
+                image_label.image = img
+                image_label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+                image_label.bind("<Button-1>", handle_click)
+            else:
+                canvas = tk.Canvas(tile_frame, width=TILE_WIDTH - 20, height=TILE_HEIGHT - 20, bg="#7ec7d2")
+                canvas.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+                canvas.bind("<Button-1>", handle_click)
 
-# Start the main loop
-logger.info("Starting Tkinter mainloop (window is now visible)...")
-root.mainloop()
-logger.info("Dashboard closed cleanly.")
+            tile_frame.bind("<Button-1>", handle_click)
+
+    def _enter_search_mode():
+        if search_state["mode"]:
+            search_entry.focus_set()
+            search_entry.selection_range(0, tk.END)
+            return
+        search_state["mode"] = True
+        search_state["query"] = ""
+        list_header.place_forget()
+        search_entry.delete(0, tk.END)
+        search_entry.place(relx=0.5, rely=0.5, anchor="center", relwidth=0.52)
+        search_entry.focus_set()
+
+    def _exit_search_mode():
+        if not search_state["mode"]:
+            return
+        search_state["mode"] = False
+        search_state["query"] = ""
+        search_entry.delete(0, tk.END)
+        search_entry.place_forget()
+        list_header.place(relx=0.5, rely=0.5, anchor="center")
+        populate_tiles()
+        root.focus_set()
+
+    def _on_search_key_release(event=None):
+        if not search_state["mode"]:
+            return
+        if event and event.keysym == "Escape":
+            return
+        query = search_entry.get()
+        if query == search_state["query"]:
+            return
+        search_state["query"] = query
+        populate_tiles()
+
+    def _on_enter(event=None):
+        if not matching_profiles:
+            return "break"
+        ctrl_pressed = bool(event.state & 0x4) if event else False
+        alt_pressed = bool(event.state & 0x20000) if event else False
+        shift_pressed = bool(event.state & 0x1) if event else False
+        target_profile = matching_profiles[0]
+        logger.info(f"Enter pressed: profile='{target_profile.get('name')}', ctrl={ctrl_pressed}, alt={alt_pressed}, shift={shift_pressed}")
+        select_profile(target_profile, ctrl_pressed=ctrl_pressed, alt_pressed=alt_pressed, shift_pressed=shift_pressed)
+        return "break"
+
+    def _on_escape(event=None):
+        if search_state["mode"]:
+            _exit_search_mode()
+            return "break"
+        logger.info("Escape key pressed, closing Dashboard...")
+        root.destroy()
+        return "break"
+
+    def _on_key_press(event):
+        if event.keysym == "Escape":
+            return _on_escape(event)
+
+        # Return / KP_Enter (handles Enter, Ctrl+Enter, Shift+Enter, Alt+Enter)
+        if event.keysym in ("Return", "KP_Enter"):
+            return _on_enter(event)
+
+        # Ctrl+F: enter search mode
+        if (event.state & 0x4) and event.keysym.lower() == "f":
+            _enter_search_mode()
+            return "break"
+
+        # If already typing inside search_entry, let Entry widget handle character insertion
+        if event.widget == search_entry:
+            return
+
+        # BackSpace when focus is outside search_entry
+        if search_state["mode"] and event.keysym == "BackSpace":
+            search_entry.focus_set()
+            cur = search_entry.get()
+            if cur:
+                search_entry.delete(len(cur) - 1, tk.END)
+            _on_search_key_release()
+            return "break"
+
+        # Ignore modifier keys or navigation keys
+        if event.keysym in (
+            "Shift_L", "Shift_R", "Control_L", "Control_R", "Alt_L", "Alt_R",
+            "Super_L", "Super_R", "Caps_Lock", "Num_Lock", "Scroll_Lock",
+            "Tab", "Up", "Down", "Left", "Right", "Home", "End", "Prior", "Next"
+        ):
+            return
+
+        char_to_insert = utils.char_from_key_event(event)
+        if char_to_insert:
+            if not search_state["mode"]:
+                _enter_search_mode()
+            search_entry.focus_set()
+            search_entry.insert(tk.END, char_to_insert)
+            _on_search_key_release()
+            return "break"
+
+    list_header.bind("<Button-1>", lambda e: _enter_search_mode())
+    search_entry.bind("<KeyRelease>", _on_search_key_release)
+    search_entry.bind("<Escape>", _on_escape)
+    search_entry.bind("<Control-f>", lambda e: "break")
+    search_entry.bind("<Control-F>", lambda e: "break")
+
+    for ret_key in (
+        "<Return>", "<KP_Enter>",
+        "<Control-Return>", "<Control-KP_Enter>",
+        "<Shift-Return>", "<Shift-KP_Enter>",
+        "<Alt-Return>", "<Alt-KP_Enter>",
+    ):
+        search_entry.bind(ret_key, _on_enter)
+        root.bind_all(ret_key, _on_enter)
+
+    root.bind_all("<KeyPress>", _on_key_press)
+    root.bind_all("<Escape>", _on_escape)
+
+    # Populate initial tiles
+    populate_tiles()
+
+    # Calculate the window size based on the grid
+    grid_frame.update_idletasks()
+
+    # Get the number of rows based on the number of profiles and columns
+    num_rows = (len(EDGE_PROFILES) + COLUMNS - 1) // COLUMNS
+
+    # Calculate the window width and height based on the grid
+    window_width = (TILE_WIDTH + 2 * PADDING_X) * COLUMNS + 40  # Add padding for the main frame
+    window_height = (TILE_HEIGHT + 2 * PADDING_Y) * num_rows + 50 + 40  # Adjusted for top bar + increased bottom padding
+
+    # Set the window size
+    logger.info(f"Calculated window size: {window_width}x{window_height}")
+    root.geometry(f"{window_width}x{window_height}")
+
+    # Positioning also raises the window and keeps it topmost briefly so coordinates stay put.
+    logger.info("Positioning window on second monitor...")
+    utils.center_window_on_second_monitor(root)
+
+    # Start the main loop
+    logger.info("Starting Tkinter mainloop (window is now visible)...")
+    root.mainloop()
+    logger.info("Dashboard closed cleanly.")
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        import argparse
+        cli_parser = argparse.ArgumentParser(description="Edge Profile Dashboard")
+        cli_parser.add_argument("profile", nargs="?", default=None, help="Name of profile to launch directly")
+        cli_parser.add_argument("--editor", "-e", action="store_true", help="Launch editor for profile instead of browser")
+        cli_parser.add_argument("--sourcetree", "-s", action="store_true", help="Launch SourceTree for profile")
+        cli_args = cli_parser.parse_args()
+        if cli_args.profile:
+            matched_profile = next((p for p in EDGE_PROFILES if p.get("name", "").lower() == cli_args.profile.lower()), None)
+            if matched_profile:
+                logger.info(f"Direct profile launch via CLI: '{matched_profile.get('name')}', editor={cli_args.editor}, sourcetree={cli_args.sourcetree}")
+                if cli_args.sourcetree:
+                    launch_sourcetree_for_profile(matched_profile["name"])
+                elif cli_args.editor:
+                    launch_editor(matched_profile["name"])
+                else:
+                    launch_browser(matched_profile[PROFILE_COMMAND_KEY])
+                sys.exit(0)
+            else:
+                logger.warning(f"Profile '{cli_args.profile}' not found in profiles.json. Opening GUI.")
+    create_dashboard()

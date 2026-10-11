@@ -15,5 +15,6 @@ Press `Esc` to close the dashboard.
 ### Features
 - Scans `C:\repo` for all folders starting with `JC_`.
 - Premium dark theme UI with hover effects.
+- Type to search: start typing any characters to filter projects in real-time. Press `Enter` to open the first match, or `Esc` to clear search / exit.
 - Automatically positions on the second monitor.
 - Opens the `.code-workspace` file if present, otherwise opens the folder.
