@@ -285,6 +285,23 @@ def launch_antigravity(target_path):
         print(f"Error launching Antigravity IDE: {e}")
         return False
 
+def launch_jc_antigravity(target_path=None):
+    """Launch JC Antigravity Dashboard via Dashboard.vbs with optional workspace/project target"""
+    try:
+        vbs_path = r"C:\repo\JC_Antigravity\Dashboard.vbs"
+        log_info(f"Launching JC Antigravity Dashboard: {vbs_path} (target: {target_path})")
+        if not os.path.exists(vbs_path):
+            log_error(f"JC Antigravity script not found at: {vbs_path}")
+            return False
+        if target_path:
+            subprocess.Popen(f'wscript.exe "{vbs_path}" "{target_path}"', shell=True)
+        else:
+            subprocess.Popen(f'wscript.exe "{vbs_path}"', shell=True)
+        return True
+    except Exception as e:
+        log_error(f"Error launching JC Antigravity: {e}")
+        return False
+
 def get_cursor_path():
     """Find the absolute path to the Cursor executable"""
     path = shutil.which('cursor')
@@ -329,7 +346,7 @@ def load_settings(base_path):
         browser_to_use = "edge"
 
     code_editor = str(settings.get("codeEditor", "Cursor")).strip().lower()
-    if code_editor not in ("cursor", "antigravity"):
+    if code_editor not in ("cursor", "antigravity", "jc_antigravity"):
         log_warn(f"Unknown codeEditor '{code_editor}', falling back to Cursor")
         code_editor = "cursor"
 
@@ -343,7 +360,11 @@ def load_settings(base_path):
 
 def launch_code_editor(target_path, code_editor):
     """Launch the editor selected by the codeEditor setting"""
-    if str(code_editor).strip().lower() == "antigravity":
+    editor_norm = str(code_editor).strip().lower()
+    if editor_norm == "jc_antigravity":
+        log_info(f"Launching JC Antigravity with target: {target_path}")
+        return launch_jc_antigravity(target_path)
+    if editor_norm == "antigravity":
         log_info(f"Launching Antigravity with target: {target_path}")
         return launch_antigravity(target_path)
     log_info(f"Launching Cursor with target: {target_path}")
@@ -352,7 +373,13 @@ def launch_code_editor(target_path, code_editor):
 def save_code_editor_setting(base_path, new_editor):
     """Save codeEditor setting to settings.json while preserving comments and formatting."""
     settings_file_path = os.path.join(base_path, "settings.json")
-    val_to_write = "Antigravity" if str(new_editor).strip().lower() == "antigravity" else "Cursor"
+    normalized = str(new_editor).strip().lower()
+    if normalized == "jc_antigravity":
+        val_to_write = "JC_Antigravity"
+    elif normalized == "antigravity":
+        val_to_write = "Antigravity"
+    else:
+        val_to_write = "Cursor"
     log_info(f"Saving codeEditor='{val_to_write}' to {settings_file_path}")
 
     try:
@@ -421,10 +448,15 @@ class _EditorToggleTooltip:
 
 def create_editor_toggle(parent, base_path, initial_editor, on_change=None):
     """
-    Creates a modern pill toggle with Cursor on the left and Antigravity on the right.
-    Clicking either side updates settings.json and calls on_change(new_editor).
+    Creates a modern pill toggle with Cursor, Antigravity, and JC_Antigravity.
+    Clicking anywhere on the pill cycles between the 3 modes in sequence:
+    Cursor -> Antigravity -> JC_Antigravity -> Cursor.
+    Updates settings.json and calls on_change(new_editor).
     """
     current_editor = [str(initial_editor).strip().lower()]
+    CYCLE_ORDER = ["cursor", "antigravity", "jc_antigravity"]
+    if current_editor[0] not in CYCLE_ORDER:
+        current_editor[0] = "cursor"
 
     container = tk.Frame(
         parent,
@@ -501,20 +533,38 @@ def create_editor_toggle(parent, base_path, initial_editor, on_change=None):
     )
     ag_btn.pack(side=tk.LEFT, padx=1)
 
+    jc_ag_btn = tk.Label(
+        container,
+        bd=0,
+        padx=5,
+        pady=3,
+        cursor="hand2",
+    )
+    jc_ag_btn.pack(side=tk.LEFT, padx=1)
+
     _EditorToggleTooltip(cursor_btn, "Use Cursor (Alt+Click)")
     _EditorToggleTooltip(ag_btn, "Use Antigravity (Alt+Click)")
+    _EditorToggleTooltip(jc_ag_btn, "Use JC Antigravity (Alt+Click)")
 
     def update_visuals():
-        is_cursor = (current_editor[0] == "cursor")
-        if is_cursor:
+        ed = current_editor[0]
+        if ed == "cursor":
             cursor_btn.configure(image=cursor_active, bg=BG_ACTIVE)
             ag_btn.configure(image=ag_inactive, bg=BG_INACTIVE)
-        else:
+            jc_ag_btn.configure(image=ag_inactive, bg=BG_INACTIVE)
+        elif ed == "antigravity":
             cursor_btn.configure(image=cursor_inactive, bg=BG_INACTIVE)
             ag_btn.configure(image=ag_active, bg=BG_ACTIVE)
+            jc_ag_btn.configure(image=ag_inactive, bg=BG_INACTIVE)
+        else:  # jc_antigravity
+            cursor_btn.configure(image=cursor_inactive, bg=BG_INACTIVE)
+            ag_btn.configure(image=ag_inactive, bg=BG_INACTIVE)
+            jc_ag_btn.configure(image=ag_active, bg=BG_ACTIVE)
 
     def set_editor(new_val):
         normalized = str(new_val).strip().lower()
+        if normalized not in CYCLE_ORDER:
+            normalized = "cursor"
         if current_editor[0] == normalized:
             return
         current_editor[0] = normalized
@@ -524,8 +574,12 @@ def create_editor_toggle(parent, base_path, initial_editor, on_change=None):
             on_change(normalized)
 
     def toggle_editor(e=None):
-        new_val = "antigravity" if current_editor[0] == "cursor" else "cursor"
-        set_editor(new_val)
+        try:
+            curr_idx = CYCLE_ORDER.index(current_editor[0])
+        except ValueError:
+            curr_idx = 0
+        next_idx = (curr_idx + 1) % len(CYCLE_ORDER)
+        set_editor(CYCLE_ORDER[next_idx])
 
     def on_cursor_enter(e):
         if current_editor[0] != "cursor":
@@ -543,6 +597,14 @@ def create_editor_toggle(parent, base_path, initial_editor, on_change=None):
         if current_editor[0] != "antigravity":
             ag_btn.configure(bg=BG_INACTIVE, image=ag_inactive)
 
+    def on_jc_ag_enter(e):
+        if current_editor[0] != "jc_antigravity":
+            jc_ag_btn.configure(bg=BG_HOVER, image=ag_hover)
+
+    def on_jc_ag_leave(e):
+        if current_editor[0] != "jc_antigravity":
+            jc_ag_btn.configure(bg=BG_INACTIVE, image=ag_inactive)
+
     container.bind("<Button-1>", toggle_editor)
     
     cursor_btn.bind("<Enter>", on_cursor_enter, add="+")
@@ -553,6 +615,9 @@ def create_editor_toggle(parent, base_path, initial_editor, on_change=None):
     ag_btn.bind("<Leave>", on_ag_leave, add="+")
     ag_btn.bind("<Button-1>", toggle_editor)
 
+    jc_ag_btn.bind("<Enter>", on_jc_ag_enter, add="+")
+    jc_ag_btn.bind("<Leave>", on_jc_ag_leave, add="+")
+    jc_ag_btn.bind("<Button-1>", toggle_editor)
 
     update_visuals()
     return container

@@ -22,7 +22,14 @@ Set shell = CreateObject("WScript.Shell")
 ' Run the Python script with hidden window
 ' 0 = Hide the window and activate another window
 shell.CurrentDirectory = scriptDir
-shell.Run "pythonw """ & pythonScript & """", 0, False
+
+Dim i, argStr
+argStr = ""
+For i = 0 To WScript.Arguments.Count - 1
+    argStr = argStr & " """ & WScript.Arguments(i) & """"
+Next
+
+shell.Run "pythonw """ & pythonScript & """" & argStr, 0, False
 
 ' Clean up
 Set shell = Nothing
