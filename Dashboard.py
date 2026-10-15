@@ -449,6 +449,13 @@ def create_dashboard():
         root.bind_all(ret_key, _on_enter)
 
     root.bind_all("<KeyPress>", _on_key_press)
+    # Ctrl+T: cycle the editor toggle (search_entry binding overrides Entry's default transpose)
+    def _on_ctrl_t(e):
+        editor_toggle.toggle_editor()
+        return "break"
+    for ctrl_t in ("<Control-t>", "<Control-T>"):
+        root.bind_all(ctrl_t, _on_ctrl_t)
+        search_entry.bind(ctrl_t, _on_ctrl_t)
     root.bind_all("<Escape>", _on_escape)
 
     # Populate initial tiles
