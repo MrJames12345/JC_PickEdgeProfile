@@ -619,6 +619,7 @@ def create_editor_toggle(parent, base_path, initial_editor, on_change=None):
     jc_ag_btn.bind("<Leave>", on_jc_ag_leave, add="+")
     jc_ag_btn.bind("<Button-1>", toggle_editor)
 
+    container.toggle_editor = toggle_editor
     update_visuals()
     return container
 
