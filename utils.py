@@ -302,36 +302,6 @@ def launch_jc_antigravity(target_path=None):
         log_error(f"Error launching JC Antigravity: {e}")
         return False
 
-def get_cursor_path():
-    """Find the absolute path to the Cursor executable"""
-    path = shutil.which('cursor')
-    if path:
-        return path
-
-    for potential_path in (
-        os.path.expandvars(r'%LOCALAPPDATA%\Programs\cursor\Cursor.exe'),
-        r'C:\cursor\Cursor.exe',
-    ):
-        if os.path.exists(potential_path):
-            return potential_path
-
-    return 'cursor'
-
-def launch_cursor(target_path):
-    """Launch Cursor with the specified path in IDE (classic editor) view"""
-    try:
-        cursor_exe = get_cursor_path()
-        # --classic opens the editor window instead of the Agents window
-        subprocess.Popen(f'"{cursor_exe}" --classic "{target_path}"', shell=True)
-        return True
-    except Exception as e:
-        print(f"Error launching Cursor: {e}")
-        return False
-
-def launch_editor(target_path):
-    """Launch Cursor with the specified path"""
-    return launch_cursor(target_path)
-
 def load_settings(base_path):
     """Load settings.json for Dashboard and PickJcProject. // comments are ignored."""
     settings_file_path = os.path.join(base_path, "settings.json")
@@ -345,10 +315,10 @@ def load_settings(base_path):
         log_warn(f"Unknown browserToUser '{browser_to_use}', falling back to Edge")
         browser_to_use = "edge"
 
-    code_editor = str(settings.get("codeEditor", "Cursor")).strip().lower()
-    if code_editor not in ("cursor", "antigravity", "jc_antigravity"):
-        log_warn(f"Unknown codeEditor '{code_editor}', falling back to Cursor")
-        code_editor = "cursor"
+    code_editor = str(settings.get("codeEditor", "JC_Antigravity")).strip().lower()
+    if code_editor not in ("antigravity", "jc_antigravity"):
+        log_warn(f"Unknown codeEditor '{code_editor}', falling back to JC_Antigravity")
+        code_editor = "jc_antigravity"
 
     profile_command_key = "commandChrome" if browser_to_use == "chrome" else "commandEdge"
     log_info(f"Settings loaded: browserToUser='{browser_to_use}', codeEditor='{code_editor}'")
@@ -361,25 +331,20 @@ def load_settings(base_path):
 def launch_code_editor(target_path, code_editor):
     """Launch the editor selected by the codeEditor setting"""
     editor_norm = str(code_editor).strip().lower()
-    if editor_norm == "jc_antigravity":
-        log_info(f"Launching JC Antigravity with target: {target_path}")
-        return launch_jc_antigravity(target_path)
     if editor_norm == "antigravity":
         log_info(f"Launching Antigravity with target: {target_path}")
         return launch_antigravity(target_path)
-    log_info(f"Launching Cursor with target: {target_path}")
-    return launch_cursor(target_path)
+    log_info(f"Launching JC Antigravity with target: {target_path}")
+    return launch_jc_antigravity(target_path)
 
 def save_code_editor_setting(base_path, new_editor):
     """Save codeEditor setting to settings.json while preserving comments and formatting."""
     settings_file_path = os.path.join(base_path, "settings.json")
     normalized = str(new_editor).strip().lower()
-    if normalized == "jc_antigravity":
-        val_to_write = "JC_Antigravity"
-    elif normalized == "antigravity":
+    if normalized == "antigravity":
         val_to_write = "Antigravity"
     else:
-        val_to_write = "Cursor"
+        val_to_write = "JC_Antigravity"
     log_info(f"Saving codeEditor='{val_to_write}' to {settings_file_path}")
 
     try:
@@ -448,15 +413,15 @@ class _EditorToggleTooltip:
 
 def create_editor_toggle(parent, base_path, initial_editor, on_change=None):
     """
-    Creates a modern pill toggle with Cursor, Antigravity, and JC_Antigravity.
-    Clicking anywhere on the pill cycles between the 3 modes in sequence:
-    Cursor -> Antigravity -> JC_Antigravity -> Cursor.
+    Creates a modern pill toggle with Antigravity and JC_Antigravity.
+    Clicking anywhere on the pill cycles between the 2 modes in sequence:
+    JC_Antigravity -> Antigravity -> JC_Antigravity.
     Updates settings.json and calls on_change(new_editor).
     """
     current_editor = [str(initial_editor).strip().lower()]
-    CYCLE_ORDER = ["cursor", "antigravity", "jc_antigravity"]
+    CYCLE_ORDER = ["jc_antigravity", "antigravity"]
     if current_editor[0] not in CYCLE_ORDER:
-        current_editor[0] = "cursor"
+        current_editor[0] = "jc_antigravity"
 
     container = tk.Frame(
         parent,
@@ -471,7 +436,6 @@ def create_editor_toggle(parent, base_path, initial_editor, on_change=None):
         cursor="hand2",
     )
 
-    cursor_path = os.path.join(base_path, "images", "Cursor.png")
     ag_path = os.path.join(base_path, "images", "Antigravity.png")
     icon_size = (20, 20)
 
@@ -498,14 +462,10 @@ def create_editor_toggle(parent, base_path, initial_editor, on_change=None):
 
         return active_tk, inactive_tk, hover_tk
 
-    cursor_active, cursor_inactive, cursor_hover = load_icon_variants(cursor_path)
     ag_active, ag_inactive, ag_hover = load_icon_variants(ag_path)
 
     # Keep image references on the container to prevent garbage collection
     container.images = {
-        "cursor_active": cursor_active,
-        "cursor_inactive": cursor_inactive,
-        "cursor_hover": cursor_hover,
         "ag_active": ag_active,
         "ag_inactive": ag_inactive,
         "ag_hover": ag_hover,
@@ -515,14 +475,18 @@ def create_editor_toggle(parent, base_path, initial_editor, on_change=None):
     BG_ACTIVE = "#363b45"
     BG_HOVER = "#25282e"
 
-    cursor_btn = tk.Label(
+    jc_ag_btn = tk.Label(
         container,
         bd=0,
         padx=5,
         pady=3,
         cursor="hand2",
+        text="JC",
+        compound=tk.RIGHT,
+        font=("Segoe UI", 7, "bold"),
+        fg="#ffffff",
     )
-    cursor_btn.pack(side=tk.LEFT, padx=1)
+    jc_ag_btn.pack(side=tk.LEFT, padx=1)
 
     ag_btn = tk.Label(
         container,
@@ -533,38 +497,22 @@ def create_editor_toggle(parent, base_path, initial_editor, on_change=None):
     )
     ag_btn.pack(side=tk.LEFT, padx=1)
 
-    jc_ag_btn = tk.Label(
-        container,
-        bd=0,
-        padx=5,
-        pady=3,
-        cursor="hand2",
-    )
-    jc_ag_btn.pack(side=tk.LEFT, padx=1)
-
-    _EditorToggleTooltip(cursor_btn, "Use Cursor (Alt+Click)")
-    _EditorToggleTooltip(ag_btn, "Use Antigravity (Alt+Click)")
     _EditorToggleTooltip(jc_ag_btn, "Use JC Antigravity (Alt+Click)")
+    _EditorToggleTooltip(ag_btn, "Use Antigravity (Alt+Click)")
 
     def update_visuals():
         ed = current_editor[0]
-        if ed == "cursor":
-            cursor_btn.configure(image=cursor_active, bg=BG_ACTIVE)
-            ag_btn.configure(image=ag_inactive, bg=BG_INACTIVE)
-            jc_ag_btn.configure(image=ag_inactive, bg=BG_INACTIVE)
-        elif ed == "antigravity":
-            cursor_btn.configure(image=cursor_inactive, bg=BG_INACTIVE)
+        if ed == "antigravity":
             ag_btn.configure(image=ag_active, bg=BG_ACTIVE)
-            jc_ag_btn.configure(image=ag_inactive, bg=BG_INACTIVE)
+            jc_ag_btn.configure(image=ag_inactive, bg=BG_INACTIVE, fg="#777777")
         else:  # jc_antigravity
-            cursor_btn.configure(image=cursor_inactive, bg=BG_INACTIVE)
             ag_btn.configure(image=ag_inactive, bg=BG_INACTIVE)
-            jc_ag_btn.configure(image=ag_active, bg=BG_ACTIVE)
+            jc_ag_btn.configure(image=ag_active, bg=BG_ACTIVE, fg="#ffffff")
 
     def set_editor(new_val):
         normalized = str(new_val).strip().lower()
         if normalized not in CYCLE_ORDER:
-            normalized = "cursor"
+            normalized = "jc_antigravity"
         if current_editor[0] == normalized:
             return
         current_editor[0] = normalized
@@ -581,14 +529,6 @@ def create_editor_toggle(parent, base_path, initial_editor, on_change=None):
         next_idx = (curr_idx + 1) % len(CYCLE_ORDER)
         set_editor(CYCLE_ORDER[next_idx])
 
-    def on_cursor_enter(e):
-        if current_editor[0] != "cursor":
-            cursor_btn.configure(bg=BG_HOVER, image=cursor_hover)
-
-    def on_cursor_leave(e):
-        if current_editor[0] != "cursor":
-            cursor_btn.configure(bg=BG_INACTIVE, image=cursor_inactive)
-
     def on_ag_enter(e):
         if current_editor[0] != "antigravity":
             ag_btn.configure(bg=BG_HOVER, image=ag_hover)
@@ -599,196 +539,25 @@ def create_editor_toggle(parent, base_path, initial_editor, on_change=None):
 
     def on_jc_ag_enter(e):
         if current_editor[0] != "jc_antigravity":
-            jc_ag_btn.configure(bg=BG_HOVER, image=ag_hover)
+            jc_ag_btn.configure(bg=BG_HOVER, image=ag_hover, fg="#aaaaaa")
 
     def on_jc_ag_leave(e):
         if current_editor[0] != "jc_antigravity":
-            jc_ag_btn.configure(bg=BG_INACTIVE, image=ag_inactive)
+            jc_ag_btn.configure(bg=BG_INACTIVE, image=ag_inactive, fg="#777777")
 
     container.bind("<Button-1>", toggle_editor)
-    
-    cursor_btn.bind("<Enter>", on_cursor_enter, add="+")
-    cursor_btn.bind("<Leave>", on_cursor_leave, add="+")
-    cursor_btn.bind("<Button-1>", toggle_editor)
-
-    ag_btn.bind("<Enter>", on_ag_enter, add="+")
-    ag_btn.bind("<Leave>", on_ag_leave, add="+")
-    ag_btn.bind("<Button-1>", toggle_editor)
 
     jc_ag_btn.bind("<Enter>", on_jc_ag_enter, add="+")
     jc_ag_btn.bind("<Leave>", on_jc_ag_leave, add="+")
     jc_ag_btn.bind("<Button-1>", toggle_editor)
 
+    ag_btn.bind("<Enter>", on_ag_enter, add="+")
+    ag_btn.bind("<Leave>", on_ag_leave, add="+")
+    ag_btn.bind("<Button-1>", toggle_editor)
+
     container.toggle_editor = toggle_editor
     update_visuals()
     return container
-
-def get_sourcetree_path():
-    """Find the absolute path to the SourceTree executable"""
-    path = shutil.which('sourcetree')
-    if path:
-        return path
-
-    potential_path = os.path.expandvars(r'%LOCALAPPDATA%\SourceTree\SourceTree.exe')
-    if os.path.exists(potential_path):
-        return potential_path
-
-    return 'sourcetree'
-
-def is_sourcetree_running():
-    """Return True if SourceTree is already running"""
-    try:
-        result = subprocess.run(
-            ['tasklist', '/FI', 'IMAGENAME eq SourceTree.exe', '/NH'],
-            capture_output=True,
-            text=True,
-            creationflags=subprocess.CREATE_NO_WINDOW,
-        )
-        return 'SourceTree.exe' in result.stdout
-    except Exception:
-        return False
-
-def wait_for_sourcetree(timeout=10):
-    """Wait until SourceTree process is running and briefly responsive"""
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        if is_sourcetree_running():
-            time.sleep(0.5)
-            return True
-        time.sleep(0.2)
-    return False
-
-def find_workspace_file(target_path):
-    """Find the .code-workspace file associated with target_path, if any."""
-    if not target_path:
-        return None
-
-    if os.path.isfile(target_path) and target_path.endswith('.code-workspace'):
-        return target_path
-
-    if os.path.isdir(target_path):
-        folder_name = os.path.basename(os.path.normpath(target_path))
-        # Check standard naming patterns
-        for candidate_name in (f"#{folder_name}.code-workspace", f"{folder_name}.code-workspace"):
-            candidate_path = os.path.join(target_path, candidate_name)
-            if os.path.isfile(candidate_path):
-                return candidate_path
-
-        # Check any .code-workspace in the directory
-        try:
-            for item in os.listdir(target_path):
-                if item.endswith('.code-workspace'):
-                    candidate_path = os.path.join(target_path, item)
-                    if os.path.isfile(candidate_path):
-                        return candidate_path
-        except Exception:
-            pass
-
-    return None
-
-def get_good_library_path_if_included(target_path):
-    """If the target's workspace file includes the-good-library, return its absolute path; else None."""
-    workspace_file = find_workspace_file(target_path)
-    if not workspace_file or not os.path.isfile(workspace_file):
-        return None
-
-    try:
-        with open(workspace_file, 'r', encoding='utf-8') as f:
-            content = f.read()
-    except Exception as e:
-        print(f"Error reading workspace file {workspace_file}: {e}")
-        return None
-
-    includes_good_lib = False
-    good_lib_relative_path = None
-
-    # Try parsing JSON (stripping JSONC comments if present)
-    try:
-        cleaned = re.sub(r'//.*', '', content)
-        cleaned = re.sub(r'/\*.*?\*/', '', cleaned, flags=re.DOTALL)
-        data = json.loads(cleaned)
-        folders = data.get('folders', [])
-        for folder in folders:
-            path_val = folder.get('path', '')
-            name_val = folder.get('name', '')
-            if 'the-good-library' in path_val or 'the-good-library' in name_val:
-                includes_good_lib = True
-                if path_val:
-                    good_lib_relative_path = path_val
-                break
-    except Exception:
-        # Fallback if JSON parsing fails
-        if 'the-good-library' in content:
-            includes_good_lib = True
-            match = re.search(r'"path"\s*:\s*"([^"]*the-good-library[^"]*)"', content)
-            if match:
-                good_lib_relative_path = match.group(1)
-
-    if not includes_good_lib:
-        return None
-
-    workspace_dir = os.path.dirname(os.path.abspath(workspace_file))
-    if good_lib_relative_path:
-        candidate_path = os.path.normpath(os.path.join(workspace_dir, good_lib_relative_path))
-        if os.path.exists(candidate_path):
-            return candidate_path
-
-    # Standard fallback locations
-    for fallback in (
-        os.path.normpath(os.path.join(workspace_dir, '..', 'the-good-library')),
-        r'C:\repo\the-good-library',
-    ):
-        if os.path.exists(fallback):
-            return fallback
-
-    return None
-
-def _open_sourcetree_repo(sourcetree_exe, repo_path):
-    """Open or focus a single repo in SourceTree"""
-    result = subprocess.run([sourcetree_exe, '-f', repo_path], shell=False)
-    if result.returncode != 0:
-        subprocess.Popen([sourcetree_exe, repo_path], shell=False)
-
-def launch_sourcetree(target_path):
-    """Launch SourceTree with the repo folder for the specified target.
-    If the selected project workspace includes the-good-library, open that repo first, then the target.
-    """
-    log_info(f"launch_sourcetree called with target: {target_path}")
-    try:
-        sourcetree_exe = get_sourcetree_path()
-        repo_path = os.path.dirname(target_path) if os.path.isfile(target_path) else target_path
-        repo_path = os.path.normpath(repo_path)
-        log_info(f"Target repo folder: {repo_path}")
-
-        # SourceTree must already be running before -f / path args are handled.
-        if not is_sourcetree_running():
-            log_info("SourceTree is not running. Launching SourceTree process...")
-            subprocess.Popen([sourcetree_exe], shell=False)
-            if not wait_for_sourcetree():
-                print("SourceTree did not start in time")
-                log_error("SourceTree did not start in time")
-                return False
-            log_info("SourceTree started successfully.")
-        else:
-            log_info("SourceTree is already running.")
-
-        # Open the-good-library first when the workspace includes it, then the target repo.
-        good_lib_path = get_good_library_path_if_included(target_path)
-        if good_lib_path and os.path.normcase(os.path.normpath(good_lib_path)) != os.path.normcase(repo_path):
-            log_info(f"get_good_library_path_if_included found '{good_lib_path}'. Opening it in SourceTree first...")
-            _open_sourcetree_repo(sourcetree_exe, good_lib_path)
-            time.sleep(0.5)
-        else:
-            log_info("Workspace does not include a separate the-good-library path.")
-
-        log_info(f"Opening '{repo_path}' in SourceTree...")
-        _open_sourcetree_repo(sourcetree_exe, repo_path)
-        log_info("SourceTree launched successfully.")
-        return True
-    except Exception as e:
-        print(f"Error launching SourceTree: {e}")
-        log_error(f"Error launching SourceTree: {e}")
-        return False
 
 def resolve_project_target(repo_dir, name):
     """Resolve the best target (workspace or folder) for a project name"""

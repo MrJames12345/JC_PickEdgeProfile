@@ -50,33 +50,9 @@ def launch_editor(name):
         logger.error(f"Error launching editor: {e}")
         print(f"Error launching editor: {e}")
 
-def launch_sourcetree_for_profile(name):
-    """Launch SourceTree for the matching project folder"""
-    try:
-        logger.info(f"launch_sourcetree_for_profile called for: '{name}'")
-        repo_path = "C:\\repo"
-        target = utils.resolve_project_target(repo_path, name)
-        if target:
-            logger.info(f"Resolved target for SourceTree: {target}")
-            utils.launch_sourcetree(target)
-        else:
-            logger.warn(f"No target found to launch SourceTree for profile: '{name}'")
-    except Exception as e:
-        logger.error(f"Error launching SourceTree: {e}")
-        print(f"Error launching SourceTree: {e}")
-
-def select_profile(profile, ctrl_pressed=False, alt_pressed=False, shift_pressed=False):
+def select_profile(profile, ctrl_pressed=False, alt_pressed=False):
     """Handle profile selection when a tile is clicked"""
-    logger.info(f"select_profile called: name='{profile.get('name')}', shift={shift_pressed}, ctrl={ctrl_pressed}, alt={alt_pressed}")
-    # If Shift is pressed, open the matching project in SourceTree and close app.
-    # Must run synchronously: launch_sourcetree waits on SourceTree, and a daemon
-    # thread would be killed as soon as the process exits after root.destroy().
-    if shift_pressed:
-        logger.info(f"Shift key active: Opening '{profile.get('name')}' in SourceTree and closing Dashboard")
-        launch_sourcetree_for_profile(profile["name"])
-        if root:
-            root.destroy()
-        return
+    logger.info(f"select_profile called: name='{profile.get('name')}', ctrl={ctrl_pressed}, alt={alt_pressed}")
 
     # If Alt is pressed, try to open the workspace and close app
     if alt_pressed:
@@ -95,14 +71,12 @@ def select_profile(profile, ctrl_pressed=False, alt_pressed=False, shift_pressed
     launch_thread.daemon = True
     launch_thread.start()
 
-    # If Ctrl is pressed, also launch the editor and SourceTree
+    # If Ctrl is pressed, also launch the editor
     if ctrl_pressed:
-        logger.info(f"Ctrl key active: also launching editor and SourceTree for '{profile.get('name')}'")
+        logger.info(f"Ctrl key active: also launching editor for '{profile.get('name')}'")
         editor_thread = threading.Thread(target=launch_editor, args=(profile["name"],))
         editor_thread.daemon = True
         editor_thread.start()
-        # Synchronous for the same reason as the Shift branch above.
-        launch_sourcetree_for_profile(profile["name"])
 
     # Close the window
     logger.info("Closing Dashboard window after profile selection")
@@ -321,8 +295,7 @@ def create_dashboard():
             def handle_click(event, prof=profile):
                 ctrl_pressed = bool(event.state & 0x4)
                 alt_pressed = bool(event.state & 0x20000)
-                shift_pressed = bool(event.state & 0x1)
-                select_profile(prof, ctrl_pressed, alt_pressed, shift_pressed)
+                select_profile(prof, ctrl_pressed, alt_pressed)
 
             img = get_profile_photo_image(profile["name"])
             if img:
@@ -376,10 +349,9 @@ def create_dashboard():
             return "break"
         ctrl_pressed = bool(event.state & 0x4) if event else False
         alt_pressed = bool(event.state & 0x20000) if event else False
-        shift_pressed = bool(event.state & 0x1) if event else False
         target_profile = matching_profiles[0]
-        logger.info(f"Enter pressed: profile='{target_profile.get('name')}', ctrl={ctrl_pressed}, alt={alt_pressed}, shift={shift_pressed}")
-        select_profile(target_profile, ctrl_pressed=ctrl_pressed, alt_pressed=alt_pressed, shift_pressed=shift_pressed)
+        logger.info(f"Enter pressed: profile='{target_profile.get('name')}', ctrl={ctrl_pressed}, alt={alt_pressed}")
+        select_profile(target_profile, ctrl_pressed=ctrl_pressed, alt_pressed=alt_pressed)
         return "break"
 
     def _on_escape(event=None):
@@ -490,15 +462,12 @@ if __name__ == "__main__":
         cli_parser = argparse.ArgumentParser(description="Edge Profile Dashboard")
         cli_parser.add_argument("profile", nargs="?", default=None, help="Name of profile to launch directly")
         cli_parser.add_argument("--editor", "-e", action="store_true", help="Launch editor for profile instead of browser")
-        cli_parser.add_argument("--sourcetree", "-s", action="store_true", help="Launch SourceTree for profile")
         cli_args = cli_parser.parse_args()
         if cli_args.profile:
             matched_profile = next((p for p in EDGE_PROFILES if p.get("name", "").lower() == cli_args.profile.lower()), None)
             if matched_profile:
-                logger.info(f"Direct profile launch via CLI: '{matched_profile.get('name')}', editor={cli_args.editor}, sourcetree={cli_args.sourcetree}")
-                if cli_args.sourcetree:
-                    launch_sourcetree_for_profile(matched_profile["name"])
-                elif cli_args.editor:
+                logger.info(f"Direct profile launch via CLI: '{matched_profile.get('name')}', editor={cli_args.editor}")
+                if cli_args.editor:
                     launch_editor(matched_profile["name"])
                 else:
                     launch_browser(matched_profile[PROFILE_COMMAND_KEY])

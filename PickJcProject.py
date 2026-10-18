@@ -52,10 +52,10 @@ def get_jc_projects():
         print(f"Error listing projects: {e}")
     return [ALL_OPTION] + sorted(projects)
 
-def open_project(name, open_in_sourcetree=False, open_both=False):
-    """Open the project in SourceTree or the selected editor (or both)"""
+def open_project(name):
+    """Open the project in the selected editor"""
     try:
-        logger.info(f"open_project called: name='{name}', open_in_sourcetree={open_in_sourcetree}, open_both={open_both}")
+        logger.info(f"open_project called: name='{name}'")
 
         if name == ALL_OPTION:
             # The All option opens in the configured editor only.
@@ -72,21 +72,9 @@ def open_project(name, open_in_sourcetree=False, open_both=False):
         logger.info(f"Resolved target for '{name}': {target}")
         
         if target:
-            success = False
-            if open_both:
-                logger.info(f"Launching Editor and SourceTree for: {target}")
-                ed_success = launch_code_editor(target)
-                st_success = utils.launch_sourcetree(target)
-                success = ed_success or st_success
-            elif open_in_sourcetree:
-                logger.info(f"Launching SourceTree for: {target}")
-                success = utils.launch_sourcetree(target)
-            else:
-                success = launch_code_editor(target)
-                
-            if success:
+            if launch_code_editor(target):
                 # Close the dashboard after launching
-                logger.info(f"Launch succeeded, closing window")
+                logger.info("Launch succeeded, closing window")
                 if root:
                     root.destroy()
         else:
@@ -209,15 +197,8 @@ def create_dashboard():
             btn.grid(row=row, column=col, padx=PADDING_X, pady=PADDING_Y)
 
             def on_click(e, p=project):
-                shift_pressed = bool(e.state & 0x1)
-                ctrl_pressed = bool(e.state & 0x4)
-                alt_pressed = bool(e.state & 0x20000)
-                logger.info(f"Tile click: project='{p}', shift={shift_pressed}, ctrl={ctrl_pressed}, alt={alt_pressed}")
-                open_project(
-                    p,
-                    open_in_sourcetree=(shift_pressed and p != ALL_OPTION),
-                    open_both=(ctrl_pressed and p != ALL_OPTION),
-                )
+                logger.info(f"Tile click: project='{p}'")
+                open_project(p)
                 return "break"
 
             btn.bind("<Button-1>", on_click)
@@ -270,15 +251,8 @@ def create_dashboard():
         if not matching_projects:
             return "break"
         project_name = matching_projects[0]
-        shift_pressed = bool(event.state & 0x1) if event else False
-        ctrl_pressed = bool(event.state & 0x4) if event else False
-        alt_pressed = bool(event.state & 0x20000) if event else False
-        logger.info(f"Enter pressed: project='{project_name}', shift={shift_pressed}, ctrl={ctrl_pressed}, alt={alt_pressed}")
-        open_project(
-            project_name,
-            open_in_sourcetree=(shift_pressed and project_name != ALL_OPTION),
-            open_both=(ctrl_pressed and project_name != ALL_OPTION),
-        )
+        logger.info(f"Enter pressed: project='{project_name}'")
+        open_project(project_name)
         return "break"
 
     def _on_escape(event=None):
@@ -372,10 +346,9 @@ if __name__ == "__main__":
         import argparse
         parser = argparse.ArgumentParser(description="Pick JC Project Launcher")
         parser.add_argument("project", nargs="?", default=None, help="Project name or target to launch directly")
-        parser.add_argument("--sourcetree", "-s", action="store_true", help="Launch in SourceTree instead of editor")
         args = parser.parse_args()
         if args.project:
-            logger.info(f"Direct launch requested via CLI: project='{args.project}', sourcetree={args.sourcetree}")
-            open_project(args.project, open_in_sourcetree=args.sourcetree)
+            logger.info(f"Direct launch requested via CLI: project='{args.project}'")
+            open_project(args.project)
             sys.exit(0)
     create_dashboard()
