@@ -1,6 +1,6 @@
 # JC_PickEdgeProfile
 
-Dashboard suite for launching Microsoft Edge profiles and Antigravity. Includes a project launcher that scans `C:\repo` for `JC_*` folders.
+Dashboard suite for launching Microsoft Edge profiles, Cursor, and Antigravity. Includes a project launcher that scans `C:\repo` for `JC_*` folders.
 
 - **Key files:** `Dashboard.py`, `PickJcProject.py`, `utils.py`, `addProfile.mjs`
 - **Stack:** Python (tkinter), Node.js
