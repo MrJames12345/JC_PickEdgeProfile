@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Dashboard.py - Select Microsoft Edge profile using a grid of tiles
+# Dashboard.py - Select Google Chrome profile using a grid of tiles
 
 import json
 import os
@@ -459,7 +459,7 @@ def create_dashboard():
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         import argparse
-        cli_parser = argparse.ArgumentParser(description="Edge Profile Dashboard")
+        cli_parser = argparse.ArgumentParser(description="Chrome Profile Dashboard")
         cli_parser.add_argument("profile", nargs="?", default=None, help="Name of profile to launch directly")
         cli_parser.add_argument("--editor", "-e", action="store_true", help="Launch editor for profile instead of browser")
         cli_args = cli_parser.parse_args()

@@ -1,5 +1,5 @@
 To see current profile number:
-- edge://version/
+- chrome://version/
 - Value under "Profile path"
 
 ---

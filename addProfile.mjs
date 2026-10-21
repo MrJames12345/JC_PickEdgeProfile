@@ -16,7 +16,7 @@ console.error=(...a)=>{__wl("[ERR] "+a.map(String).join(" "));__origErr(...a)};
 console.warn=(...a)=>{__wl("[WRN] "+a.map(String).join(" "));__origWarn(...a)};
 
 /**
- * Add a new Edge profile with image, bookmarks, and dashboard registration.
+ * Add a new Chrome profile with image, bookmarks, and dashboard registration.
  * Equivalent to: addProfile.bat
  *
  * Requires Python to be installed for the setup script.
@@ -124,15 +124,15 @@ async function main() {
 
     // 5. Run the Python setup script (ported inline from the bat)
     // The bat generates a temp Python script, let me do the same
-    console.log("Creating Edge profile, injecting bookmarks, and updating profiles.json...");
+    console.log("Creating Chrome profile, injecting bookmarks, and updating profiles.json...");
 
-    const SETUP_SCRIPT = join(tmpdir(), "setup_edge_profile.py");
+    const SETUP_SCRIPT = join(tmpdir(), "setup_chrome_profile.py");
 
     const pythonSetup = `
 import sys, re, os, json
 name = sys.argv[1]
 profiles_file = sys.argv[2]
-user_data_dir = os.path.join(os.environ['LOCALAPPDATA'], 'Microsoft', 'Edge', 'User Data')
+user_data_dir = os.path.join(os.environ['LOCALAPPDATA'], 'Google', 'Chrome', 'User Data')
 local_state_path = os.path.join(user_data_dir, 'Local State')
 max_num = 0
 for entry in os.listdir(user_data_dir):
@@ -145,9 +145,9 @@ profile_dir_name = 'Profile ' + str(new_num)
 new_profile_path = os.path.join(user_data_dir, profile_dir_name)
 os.makedirs(new_profile_path, exist_ok=True)
 bm_child = {"date_added": "13250000000000000", "guid": "5d399380-6060-466d-9610-1c099309623e", "id": "5", "name": "Outlook", "type": "url", "url": "https://outlook.live.com/mail/0/"}
-bm_bar = {"children": [bm_child], "date_added": "13250000000000000", "date_modified": "13250000000000000", "id": "1", "name": "Favorites bar", "type": "folder"}
-bm_other = {"children": [], "id": "2", "name": "Other favorites", "type": "folder"}
-bm_synced = {"children": [], "id": "3", "name": "Mobile favorites", "type": "folder"}
+bm_bar = {"children": [bm_child], "date_added": "13250000000000000", "date_modified": "13250000000000000", "id": "1", "name": "Bookmarks bar", "type": "folder"}
+bm_other = {"children": [], "id": "2", "name": "Other bookmarks", "type": "folder"}
+bm_synced = {"children": [], "id": "3", "name": "Mobile bookmarks", "type": "folder"}
 bookmarks = {"checksum": "", "roots": {"bookmark_bar": bm_bar, "other": bm_other, "synced": bm_synced}, "version": 1}
 with open(os.path.join(new_profile_path, 'Bookmarks'), 'w', encoding='utf-8') as f: json.dump(bookmarks, f, indent=3)
 with open(local_state_path, 'r', encoding='utf-8') as f: local_state = json.load(f)
@@ -158,7 +158,7 @@ if profile_dir_name not in profiles_order: profiles_order.append(profile_dir_nam
 with open(local_state_path, 'w', encoding='utf-8') as f: json.dump(local_state, f, indent=3)
 with open(profiles_file, 'r', encoding='utf-8') as f: profiles = json.load(f)
 cmd_edge = '"C:\\\\Program Files (x86)\\\\Microsoft\\\\Edge\\\\Application\\\\msedge.exe" --profile-directory="' + profile_dir_name + '"'
-cmd_chrome = '"C:\\\\Program Files\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe" --profile-directory="WWW"'
+cmd_chrome = '"C:\\\\Program Files\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe" --profile-directory="' + profile_dir_name + '"'
 profiles.append({"name": name, "commandEdge": cmd_edge, "commandChrome": cmd_chrome})
 with open(profiles_file, 'w', encoding='utf-8') as f:
     json.dump(profiles, f, indent=4)
@@ -178,7 +178,7 @@ print(profile_dir_name)
     try { unlinkSync(SETUP_SCRIPT); } catch {}
 
     if (PROFILE_DIR === "FAILED" || !PROFILE_DIR) {
-      throw new Error("Failed to create Edge profile or update profiles.json.");
+      throw new Error("Failed to create Chrome profile or update profiles.json.");
     }
 
     console.log();
@@ -190,11 +190,11 @@ print(profile_dir_name)
     console.log("==========================================================");
     console.log();
 
-    // 6. Launch Edge with the new profile
+    // 6. Launch Chrome with the new profile
     console.log(`Launching new profile '${PROFILE_NAME}'...`);
     try {
       execSync(
-        `start "" "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe" --profile-directory="${PROFILE_DIR}" --no-first-run`,
+        `start "" "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" --profile-directory="${PROFILE_DIR}" --no-first-run`,
         { stdio: "ignore" }
       );
     } catch {}
