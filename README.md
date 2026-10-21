@@ -6,7 +6,7 @@ To see current profile number:
 
 ## PickJcProject Dashboard
 
-A simple dashboard to quickly pick and open JC projects in Antigravity.
+A simple dashboard to quickly pick and open JC projects in JC_TheGoodWorkStation.
 
 ### Usage
 Run `PickJcProject.vbs` to launch the dashboard without a console window.

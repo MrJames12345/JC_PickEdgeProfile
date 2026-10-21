@@ -285,13 +285,13 @@ def launch_antigravity(target_path):
         print(f"Error launching Antigravity IDE: {e}")
         return False
 
-def launch_jc_antigravity(target_path=None):
-    """Launch JC Antigravity Dashboard via Dashboard.vbs with optional workspace/project target"""
+def launch_jc_thegoodworkstation(target_path=None):
+    """Launch JC_TheGoodWorkStation via Dashboard.vbs with optional workspace/project target"""
     try:
-        vbs_path = r"C:\repo\JC_Antigravity\Dashboard.vbs"
-        log_info(f"Launching JC Antigravity Dashboard: {vbs_path} (target: {target_path})")
+        vbs_path = r"C:\repo\JC_TheGoodWorkStation\Dashboard.vbs"
+        log_info(f"Launching JC_TheGoodWorkStation: {vbs_path} (target: {target_path})")
         if not os.path.exists(vbs_path):
-            log_error(f"JC Antigravity script not found at: {vbs_path}")
+            log_error(f"JC_TheGoodWorkStation script not found at: {vbs_path}")
             return False
         if target_path:
             subprocess.Popen(f'wscript.exe "{vbs_path}" "{target_path}"', shell=True)
@@ -299,7 +299,7 @@ def launch_jc_antigravity(target_path=None):
             subprocess.Popen(f'wscript.exe "{vbs_path}"', shell=True)
         return True
     except Exception as e:
-        log_error(f"Error launching JC Antigravity: {e}")
+        log_error(f"Error launching JC_TheGoodWorkStation: {e}")
         return False
 
 def get_cursor_path():
@@ -341,10 +341,10 @@ def load_settings(base_path):
         log_warn(f"Unknown browserToUser '{browser_to_use}', falling back to Edge")
         browser_to_use = "edge"
 
-    code_editor = str(settings.get("codeEditor", "JC_Antigravity")).strip().lower()
-    if code_editor not in ("cursor", "jc_antigravity"):
-        log_warn(f"Unknown codeEditor '{code_editor}', falling back to JC_Antigravity")
-        code_editor = "jc_antigravity"
+    code_editor = str(settings.get("codeEditor", "JC_TheGoodWorkStation")).strip().lower()
+    if code_editor not in ("cursor", "jc_thegoodworkstation"):
+        log_warn(f"Unknown codeEditor '{code_editor}', falling back to JC_TheGoodWorkStation")
+        code_editor = "jc_thegoodworkstation"
 
     profile_command_key = "commandChrome" if browser_to_use == "chrome" else "commandEdge"
     log_info(f"Settings loaded: browserToUser='{browser_to_use}', codeEditor='{code_editor}'")
@@ -357,9 +357,9 @@ def load_settings(base_path):
 def launch_code_editor(target_path, code_editor):
     """Launch the editor selected by the codeEditor setting"""
     editor_norm = str(code_editor).strip().lower()
-    if editor_norm == "jc_antigravity":
-        log_info(f"Launching JC Antigravity with target: {target_path}")
-        return launch_jc_antigravity(target_path)
+    if editor_norm == "jc_thegoodworkstation":
+        log_info(f"Launching JC_TheGoodWorkStation with target: {target_path}")
+        return launch_jc_thegoodworkstation(target_path)
     log_info(f"Launching Cursor with target: {target_path}")
     return launch_cursor(target_path)
 
@@ -367,8 +367,8 @@ def save_code_editor_setting(base_path, new_editor):
     """Save codeEditor setting to settings.json while preserving comments and formatting."""
     settings_file_path = os.path.join(base_path, "settings.json")
     normalized = str(new_editor).strip().lower()
-    if normalized == "jc_antigravity":
-        val_to_write = "JC_Antigravity"
+    if normalized == "jc_thegoodworkstation":
+        val_to_write = "JC_TheGoodWorkStation"
     else:
         val_to_write = "Cursor"
     log_info(f"Saving codeEditor='{val_to_write}' to {settings_file_path}")
@@ -439,13 +439,13 @@ class _EditorToggleTooltip:
 
 def create_editor_toggle(parent, base_path, initial_editor, on_change=None):
     """
-    Creates a modern pill toggle with Cursor and JC_Antigravity.
+    Creates a modern pill toggle with Cursor and JC_TheGoodWorkStation.
     Clicking anywhere on the pill cycles between the 2 modes in sequence:
-    Cursor -> JC_Antigravity -> Cursor.
+    Cursor -> JC_TheGoodWorkStation -> Cursor.
     Updates settings.json and calls on_change(new_editor).
     """
     current_editor = [str(initial_editor).strip().lower()]
-    CYCLE_ORDER = ["cursor", "jc_antigravity"]
+    CYCLE_ORDER = ["cursor", "jc_thegoodworkstation"]
     if current_editor[0] not in CYCLE_ORDER:
         current_editor[0] = "cursor"
 
@@ -463,7 +463,7 @@ def create_editor_toggle(parent, base_path, initial_editor, on_change=None):
     )
 
     cursor_path = os.path.join(base_path, "images", "Cursor.png")
-    ag_path = os.path.join(base_path, "images", "Antigravity.png")
+    ag_path = os.path.join(base_path, "images", "TheGoodWorkStation.png")
     icon_size = (20, 20)
 
     def load_icon_variants(img_path):
@@ -525,14 +525,14 @@ def create_editor_toggle(parent, base_path, initial_editor, on_change=None):
     ag_btn.pack(side=tk.LEFT, padx=1)
 
     _EditorToggleTooltip(cursor_btn, "Use Cursor (Alt+Click)")
-    _EditorToggleTooltip(ag_btn, "Use JC Antigravity (Alt+Click)")
+    _EditorToggleTooltip(ag_btn, "Use JC_TheGoodWorkStation (Alt+Click)")
 
     def update_visuals():
         ed = current_editor[0]
         if ed == "cursor":
             cursor_btn.configure(image=cursor_active, bg=BG_ACTIVE)
             ag_btn.configure(image=ag_inactive, bg=BG_INACTIVE)
-        else:  # jc_antigravity
+        else:  # jc_thegoodworkstation
             cursor_btn.configure(image=cursor_inactive, bg=BG_INACTIVE)
             ag_btn.configure(image=ag_active, bg=BG_ACTIVE)
 
@@ -565,11 +565,11 @@ def create_editor_toggle(parent, base_path, initial_editor, on_change=None):
             cursor_btn.configure(bg=BG_INACTIVE, image=cursor_inactive)
 
     def on_ag_enter(e):
-        if current_editor[0] != "jc_antigravity":
+        if current_editor[0] != "jc_thegoodworkstation":
             ag_btn.configure(bg=BG_HOVER, image=ag_hover)
 
     def on_ag_leave(e):
-        if current_editor[0] != "jc_antigravity":
+        if current_editor[0] != "jc_thegoodworkstation":
             ag_btn.configure(bg=BG_INACTIVE, image=ag_inactive)
 
     container.bind("<Button-1>", toggle_editor)
