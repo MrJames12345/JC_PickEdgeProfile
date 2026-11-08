@@ -33,10 +33,6 @@ else:
 os.chdir(base_path)
 logger.info(f"Base path and CWD: {base_path}")
 
-app_settings = utils.load_settings(base_path)
-code_editor = app_settings["code_editor"]
-logger.info(f"Using codeEditor='{code_editor}'")
-
 def get_jc_projects():
     """Get list of folders in C:\\repo starting with JC_"""
     projects = []
@@ -53,15 +49,15 @@ def get_jc_projects():
     return [ALL_OPTION] + sorted(projects)
 
 def open_project(name):
-    """Open the project in the selected editor"""
+    """Open the project in JC_TheGoodWorkStation"""
     try:
         logger.info(f"open_project called: name='{name}'")
 
         if name == ALL_OPTION:
-            # The All option opens in the configured editor only.
+            # The All option opens the #AllApps workspace, falling back to the repo folder.
             target = ALL_OPTION_WORKSPACE if os.path.exists(ALL_OPTION_WORKSPACE) else REPO_DIR
             logger.info(f"Opening All option with target: {target}")
-            if launch_code_editor(target):
+            if utils.launch_jc_thegoodworkstation(target):
                 logger.info("Editor launched for All option, destroying window")
                 if root:
                     root.destroy()
@@ -72,7 +68,7 @@ def open_project(name):
         logger.info(f"Resolved target for '{name}': {target}")
         
         if target:
-            if launch_code_editor(target):
+            if utils.launch_jc_thegoodworkstation(target):
                 # Close the dashboard after launching
                 logger.info("Launch succeeded, closing window")
                 if root:
@@ -82,10 +78,6 @@ def open_project(name):
     except Exception as e:
         logger.error(f"Error opening project: {e}")
         print(f"Error opening project: {e}")
-
-def launch_code_editor(target):
-    """Launch the editor selected by the codeEditor setting"""
-    return utils.launch_code_editor(target, code_editor)
 
 def create_dashboard():
     global root
@@ -101,7 +93,7 @@ def create_dashboard():
     main_frame = tk.Frame(root, padx=20, pady=20, bg="#262626")
     main_frame.pack(fill=tk.BOTH, expand=True)
 
-    # Header bar with title centered and editor toggle at top right (fixed height so title/search swap does not shift grid)
+    # Header bar with title centered (fixed height so title/search swap does not shift grid)
     HEADER_HEIGHT = 48
     header_frame = tk.Frame(main_frame, bg="#262626", height=HEADER_HEIGHT)
     header_frame.pack(fill=tk.X, pady=(0, 10))
@@ -128,14 +120,6 @@ def create_dashboard():
         bd=0,
         justify=tk.CENTER,
     )
-
-    def on_editor_changed(new_editor):
-        global code_editor
-        code_editor = new_editor
-        logger.info(f"Pick JC Project code_editor updated to: '{code_editor}'")
-
-    editor_toggle = utils.create_editor_toggle(header_frame, base_path, code_editor, on_change=on_editor_changed)
-    editor_toggle.place(relx=1.0, rely=0.5, anchor=tk.E)
 
     # Grid frame
     grid_frame = tk.Frame(main_frame, bg="#262626")
@@ -322,13 +306,6 @@ def create_dashboard():
         root.bind_all(ret_key, _on_enter)
 
     root.bind_all("<KeyPress>", _on_key_press)
-    # Ctrl+T: cycle the editor toggle (search_entry binding overrides Entry's default transpose)
-    def _on_ctrl_t(e):
-        editor_toggle.toggle_editor()
-        return "break"
-    for ctrl_t in ("<Control-t>", "<Control-T>"):
-        root.bind_all(ctrl_t, _on_ctrl_t)
-        search_entry.bind(ctrl_t, _on_ctrl_t)
     root.bind_all("<Escape>", _on_escape)
 
     # Populate initial grid

@@ -1,4 +1,3 @@
 {
-    "browserToUser": "Chrome", // Edge | Chrome
-    "codeEditor": "JC_TheGoodWorkStation" // Cursor | JC_TheGoodWorkStation
+    "browserToUser": "Chrome" // Edge | Chrome
 }

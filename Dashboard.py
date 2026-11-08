@@ -33,9 +33,9 @@ def launch_browser(command):
         print(f"Error launching browser: {e}")
 
 def launch_editor(name):
-    """Launch the editor with the workspace file or folder if it exists"""
+    """Launch JC_TheGoodWorkStation with the workspace file or folder if it exists"""
     try:
-        logger.info(f"launch_editor called for profile: '{name}' using editor: '{code_editor}'")
+        logger.info(f"launch_editor called for profile: '{name}'")
 
         # Use common util to resolve the target
         repo_path = "C:\\repo"
@@ -43,7 +43,7 @@ def launch_editor(name):
         
         # If target exists (either workspace file or project folder), launch it
         if target:
-            utils.launch_code_editor(target, code_editor)
+            utils.launch_jc_thegoodworkstation(target)
         else:
             logger.warn(f"No target found for profile: '{name}'")
     except Exception as e:
@@ -124,8 +124,7 @@ except Exception as e:
 app_settings = utils.load_settings(base_path)
 browser_to_use = app_settings["browser_to_use"]
 PROFILE_COMMAND_KEY = app_settings["profile_command_key"]
-code_editor = app_settings["code_editor"]
-logger.info(f"Using browserToUser='{browser_to_use}', PROFILE_COMMAND_KEY='{PROFILE_COMMAND_KEY}', codeEditor='{code_editor}'")
+logger.info(f"Using browserToUser='{browser_to_use}', PROFILE_COMMAND_KEY='{PROFILE_COMMAND_KEY}'")
 
 root = None
 
@@ -188,14 +187,6 @@ def create_dashboard():
         bd=0,
         justify=tk.CENTER,
     )
-
-    def on_editor_changed(new_editor):
-        global code_editor
-        code_editor = new_editor
-        logger.info(f"Dashboard code_editor updated to: '{code_editor}'")
-
-    editor_toggle = utils.create_editor_toggle(header_frame, base_path, code_editor, on_change=on_editor_changed)
-    editor_toggle.place(relx=1.0, rely=0.5, anchor=tk.E)
 
     # Create a frame for the grid of tiles
     grid_frame = tk.Frame(main_frame, bg="#262626")
@@ -421,13 +412,6 @@ def create_dashboard():
         root.bind_all(ret_key, _on_enter)
 
     root.bind_all("<KeyPress>", _on_key_press)
-    # Ctrl+T: cycle the editor toggle (search_entry binding overrides Entry's default transpose)
-    def _on_ctrl_t(e):
-        editor_toggle.toggle_editor()
-        return "break"
-    for ctrl_t in ("<Control-t>", "<Control-T>"):
-        root.bind_all(ctrl_t, _on_ctrl_t)
-        search_entry.bind(ctrl_t, _on_ctrl_t)
     root.bind_all("<Escape>", _on_escape)
 
     # Populate initial tiles
