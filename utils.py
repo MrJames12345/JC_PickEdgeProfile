@@ -8,8 +8,39 @@ import datetime
 import traceback
 import sys
 import threading
+import math
 import ctypes
 from ctypes import wintypes
+
+DEFAULT_BROWSER_WINDOW_GEOMETRIES = [
+    {
+        "x": 18,
+        "y": 24,
+        "width": 871,
+        "height": 1639,
+        "work_area_left": 0,
+        "work_area_top": 0,
+        "work_area_right": 3072,
+        "work_area_bottom": 1680,
+    },
+    {
+        "x": 3090,
+        "y": 24,
+        "width": 2155,
+        "height": 1639,
+        "work_area_left": 3072,
+        "work_area_top": 0,
+        "work_area_right": 6144,
+        "work_area_bottom": 1680,
+    },
+]
+DEFAULT_BROWSER_WINDOW_GEOMETRY = DEFAULT_BROWSER_WINDOW_GEOMETRIES[0]
+
+class _POINT(ctypes.Structure):
+    _fields_ = [
+        ("x", wintypes.LONG),
+        ("y", wintypes.LONG),
+    ]
 
 class _RECT(ctypes.Structure):
     _fields_ = [
@@ -17,6 +48,16 @@ class _RECT(ctypes.Structure):
         ("top", wintypes.LONG),
         ("right", wintypes.LONG),
         ("bottom", wintypes.LONG)
+    ]
+
+class _WINDOWPLACEMENT(ctypes.Structure):
+    _fields_ = [
+        ("length", wintypes.UINT),
+        ("flags", wintypes.UINT),
+        ("showCmd", wintypes.UINT),
+        ("ptMinPosition", _POINT),
+        ("ptMaxPosition", _POINT),
+        ("rcNormalPosition", _RECT),
     ]
 
 class _MONITORINFOEXW(ctypes.Structure):
@@ -300,6 +341,42 @@ def launch_jc_thegoodworkstation(target_path=None):
         log_error(f"Error launching JC_TheGoodWorkStation: {e}")
         return False
 
+def _normalize_window_geometries(raw_geom):
+    """Normalize windowOpenGeometry from settings.json into a list of geometry dicts."""
+    items = raw_geom if isinstance(raw_geom, list) else ([raw_geom] if isinstance(raw_geom, dict) else [])
+    normalized = []
+    for idx, item in enumerate(items):
+        if not isinstance(item, dict):
+            continue
+        base = dict(
+            DEFAULT_BROWSER_WINDOW_GEOMETRIES[idx]
+            if idx < len(DEFAULT_BROWSER_WINDOW_GEOMETRIES)
+            else DEFAULT_BROWSER_WINDOW_GEOMETRY
+        )
+        valid = True
+        for key in ("x", "y", "width", "height"):
+            val = item.get(key)
+            if isinstance(val, int) and not isinstance(val, bool):
+                base[key] = val
+            else:
+                valid = False
+                break
+        if not valid:
+            continue
+        if base["x"] >= 3072:
+            base["work_area_left"] = 3072
+            base["work_area_top"] = 0
+            base["work_area_right"] = 6144
+            base["work_area_bottom"] = 1680
+        else:
+            base["work_area_left"] = 0
+            base["work_area_top"] = 0
+            base["work_area_right"] = 3072
+            base["work_area_bottom"] = 1680
+        normalized.append(base)
+    return normalized if normalized else [dict(g) for g in DEFAULT_BROWSER_WINDOW_GEOMETRIES]
+
+
 def load_settings(base_path):
     """Load settings.json for Dashboard. // comments are ignored."""
     settings_file_path = os.path.join(base_path, "settings.json")
@@ -314,25 +391,306 @@ def load_settings(base_path):
         browser_to_use = "edge"
 
     profile_command_key = "commandChrome" if browser_to_use == "chrome" else "commandEdge"
-    log_info(f"Settings loaded: browserToUser='{browser_to_use}'")
+    geoms = _normalize_window_geometries(settings.get("windowOpenGeometry"))
+    log_info(f"Settings loaded: browserToUser='{browser_to_use}', windowOpenGeometry={geoms}")
     return {
         "browser_to_use": browser_to_use,
         "profile_command_key": profile_command_key,
+        "window_open_geometry": geoms,
     }
+
+
+def _extract_profile_directory(command):
+    """Extract the --profile-directory value from a browser launch command."""
+    if not command:
+        return "Default"
+    match = re.search(r'--profile-directory=(?:"([^"]+)"|([^\s]+))', command)
+    if not match:
+        return "Default"
+    return (match.group(1) or match.group(2) or "Default").strip()
+
+
+def _browser_user_data_dir(command, browser_to_use="chrome"):
+    cmd_lower = (command or "").lower()
+    local_app_data = os.environ.get("LOCALAPPDATA") or os.path.expanduser(r"~\AppData\Local")
+    if "msedge.exe" in cmd_lower or browser_to_use == "edge":
+        return os.path.join(local_app_data, "Microsoft", "Edge", "User Data")
+    return os.path.join(local_app_data, "Google", "Chrome", "User Data")
+
+
+def apply_browser_profile_window_placement(command, geom=None, browser_to_use="chrome"):
+    """Write browser.window_placement into the target profile's Preferences file before launch."""
+    if isinstance(geom, list):
+        g = geom[0] if geom else DEFAULT_BROWSER_WINDOW_GEOMETRY
+    else:
+        g = geom or DEFAULT_BROWSER_WINDOW_GEOMETRY
+    x = int(g["x"])
+    y = int(g["y"])
+    width = int(g["width"])
+    height = int(g["height"])
+    placement = {
+        "left": x,
+        "top": y,
+        "right": x + width,
+        "bottom": y + height,
+        "maximized": False,
+        "work_area_left": int(g.get("work_area_left", 0)),
+        "work_area_top": int(g.get("work_area_top", 0)),
+        "work_area_right": int(g.get("work_area_right", 3072)),
+        "work_area_bottom": int(g.get("work_area_bottom", 1680)),
+    }
+    try:
+        profile_dir = _extract_profile_directory(command)
+        user_data_dir = _browser_user_data_dir(command, browser_to_use=browser_to_use)
+        pref_path = os.path.join(user_data_dir, profile_dir, "Preferences")
+        if not os.path.exists(pref_path):
+            os.makedirs(os.path.dirname(pref_path), exist_ok=True)
+            data = {}
+        else:
+            with open(pref_path, "r", encoding="utf-8", errors="replace") as f:
+                data = json.load(f)
+            if not isinstance(data, dict):
+                data = {}
+        browser_sec = data.get("browser")
+        if not isinstance(browser_sec, dict):
+            browser_sec = {}
+            data["browser"] = browser_sec
+        browser_sec["window_placement"] = placement
+        with open(pref_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, separators=(",", ":"))
+        log_info(f"Updated Preferences window_placement for '{profile_dir}': {placement}")
+    except Exception as e:
+        log_warn(f"Could not update browser Preferences window_placement: {e}")
+
+
+def list_browser_window_hwnds():
+    """Return visible top-level Chromium browser HWNDs (Chrome_WidgetWin_1 with caption/thickframe)."""
+    hwnds = []
+    if os.name != "nt":
+        return hwnds
+    try:
+        user32 = ctypes.windll.user32
+        GWL_STYLE = -16
+        GWL_EXSTYLE = -20
+        WS_CAPTION = 0x00C00000
+        WS_THICKFRAME = 0x00040000
+        WS_EX_TOOLWINDOW = 0x00000080
+
+        WNDENUMPROC = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+        user32.EnumWindows.argtypes = [WNDENUMPROC, wintypes.LPARAM]
+        user32.EnumWindows.restype = wintypes.BOOL
+
+        def enum_cb(hwnd, _lparam):
+            if not user32.IsWindowVisible(hwnd):
+                return True
+            if user32.GetWindowTextLengthW(hwnd) <= 0:
+                return True
+            cls_buf = ctypes.create_unicode_buffer(64)
+            user32.GetClassNameW(hwnd, cls_buf, 64)
+            if cls_buf.value != "Chrome_WidgetWin_1":
+                return True
+            style = user32.GetWindowLongW(hwnd, GWL_STYLE)
+            exstyle = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+            if (style & WS_CAPTION) and (style & WS_THICKFRAME) and not (exstyle & WS_EX_TOOLWINDOW):
+                hwnds.append(int(hwnd))
+            return True
+
+        cb_ref = WNDENUMPROC(enum_cb)
+        user32.EnumWindows(cb_ref, 0)
+    except Exception as e:
+        log_warn(f"list_browser_window_hwnds failed: {e}")
+    return hwnds
+
+
+def set_browser_window_geometry(hwnd, x, y, width, height):
+    """Place a Chromium browser HWND at DIP coordinates (x, y, width, height), converting to physical pixels."""
+    if os.name != "nt" or not hwnd:
+        return False
+    user32 = ctypes.windll.user32
+    prev_ctx = 0
+    try:
+        user32.SetThreadDpiAwarenessContext.argtypes = [ctypes.c_ssize_t]
+        user32.SetThreadDpiAwarenessContext.restype = ctypes.c_ssize_t
+        prev_ctx = user32.SetThreadDpiAwarenessContext(-4)
+    except Exception:
+        prev_ctx = 0
+    try:
+        dpi = 96
+        try:
+            user32.GetDpiForWindow.argtypes = [wintypes.HWND]
+            user32.GetDpiForWindow.restype = wintypes.UINT
+            win_dpi = int(user32.GetDpiForWindow(hwnd) or 0)
+            if win_dpi > 0:
+                dpi = win_dpi
+        except Exception:
+            pass
+        scale = (dpi / 96.0) if prev_ctx else 1.0
+        px_x = int(math.floor(x * scale))
+        px_y = int(math.floor(y * scale))
+        px_w = int(math.ceil(width * scale))
+        px_h = int(math.ceil(height * scale))
+
+        SW_SHOWNORMAL = 1
+        SWP_NOZORDER = 0x0004
+        SWP_NOACTIVATE = 0x0010
+        SWP_FRAMECHANGED = 0x0020
+
+        if user32.IsZoomed(hwnd) or user32.IsIconic(hwnd):
+            user32.ShowWindow(hwnd, SW_SHOWNORMAL)
+
+        user32.SetWindowPos(
+            hwnd,
+            0,
+            px_x,
+            px_y,
+            px_w,
+            px_h,
+            SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED,
+        )
+        return True
+    except Exception as e:
+        log_warn(f"set_browser_window_geometry failed for HWND={hwnd}: {e}")
+        return False
+    finally:
+        if prev_ctx:
+            try:
+                user32.SetThreadDpiAwarenessContext(prev_ctx)
+            except Exception:
+                pass
+
+
+def launch_browser_with_geometry(
+    command,
+    geom=None,
+    browser_to_use="chrome",
+    open_chrome1=True,
+    chrome1_urls=None,
+    open_chrome2=True,
+    chrome2_urls=None,
+):
+    """Launch the browser profile and open a window for each enabled entry in ``geom`` (Monitor 1 and/or Monitor 2)."""
+    geoms = _normalize_window_geometries(geom)
+    chrome1_urls = [u.strip() for u in (chrome1_urls or []) if u and u.strip()]
+    chrome2_urls = [u.strip() for u in (chrome2_urls or []) if u and u.strip()]
+
+    windows_to_launch = []
+    if open_chrome1 and len(geoms) > 0:
+        windows_to_launch.append({
+            "idx": 0,
+            "name": "Monitor 1 (Small)",
+            "geom": geoms[0],
+            "urls": chrome1_urls,
+        })
+    if open_chrome2 and len(geoms) > 1:
+        windows_to_launch.append({
+            "idx": 1,
+            "name": "Monitor 2 (Large)",
+            "geom": geoms[1],
+            "urls": chrome2_urls,
+        })
+    elif open_chrome2 and len(geoms) == 1:
+        windows_to_launch.append({
+            "idx": 1,
+            "name": "Monitor 2 (Large)",
+            "geom": geoms[0],
+            "urls": chrome2_urls,
+        })
+
+    if not windows_to_launch:
+        log_info("No browser windows enabled to launch (open_chrome1=False, open_chrome2=False).")
+        return
+
+    first_geom = windows_to_launch[0]["geom"]
+    apply_browser_profile_window_placement(command, first_geom, browser_to_use=browser_to_use)
+
+    known_hwnds = set(list_browser_window_hwnds())
+    opened_windows = []
+
+    for w_info in windows_to_launch:
+        g = w_info["geom"]
+        urls = w_info["urls"]
+        idx = w_info["idx"]
+        w_name = w_info["name"]
+
+        x = int(g["x"])
+        y = int(g["y"])
+        width = int(g["width"])
+        height = int(g["height"])
+
+        # Check if an earlier launch in this loop already spawned an extra window (only if no specific URLs need launching)
+        unclaimed = [h for h in list_browser_window_hwnds() if h not in known_hwnds]
+        if unclaimed and not urls:
+            target_hwnd = unclaimed[0]
+            known_hwnds.add(target_hwnd)
+            opened_windows.append((target_hwnd, g))
+            set_browser_window_geometry(target_hwnd, x, y, width, height)
+            log_info(f"Claimed extra browser HWND={target_hwnd} for {w_name} at DIP=({x}, {y}, {width}x{height})")
+            continue
+
+        full_command = command
+        if "--new-window" not in full_command:
+            full_command = f"{full_command} --new-window"
+        if "--window-position=" not in full_command:
+            full_command = f"{full_command} --window-position={x},{y}"
+        if "--window-size=" not in full_command:
+            full_command = f"{full_command} --window-size={width},{height}"
+
+        if urls:
+            url_args = " ".join(f'"{u}"' for u in urls)
+            full_command = f"{full_command} {url_args}"
+
+        log_info(f"Launching browser {w_name} with geometry ({x}, {y}, {width}x{height}): {full_command}")
+        subprocess.Popen(full_command, shell=True)
+
+        timeout_s = 4.0 if idx == 0 else 3.0
+        deadline = time.monotonic() + timeout_s
+        target_hwnd = None
+        while time.monotonic() < deadline:
+            current_hwnds = list_browser_window_hwnds()
+            new_hwnds = [h for h in current_hwnds if h not in known_hwnds]
+            if new_hwnds:
+                target_hwnd = new_hwnds[0]
+                known_hwnds.add(target_hwnd)
+                break
+            time.sleep(0.02)
+
+        if target_hwnd is not None:
+            opened_windows.append((target_hwnd, g))
+            for _ in range(2):
+                set_browser_window_geometry(target_hwnd, x, y, width, height)
+                time.sleep(0.03)
+            log_info(f"Positioned browser {w_name} HWND={target_hwnd} at DIP=({x}, {y}, {width}x{height})")
+        else:
+            log_warn(f"Browser {w_name} HWND was not detected within {timeout_s}s.")
+
+    # Re-enforce geometry across all opened windows so neither drifts or cascades during tab restore
+    if opened_windows:
+        for _ in range(6):
+            for hwnd, g in opened_windows:
+                set_browser_window_geometry(hwnd, int(g["x"]), int(g["y"]), int(g["width"]), int(g["height"]))
+            time.sleep(0.05)
+        apply_browser_profile_window_placement(command, first_geom, browser_to_use=browser_to_use)
 
 def resolve_project_target(repo_dir, name):
     """Resolve the best target (workspace or folder) for a project name"""
-    project_path = os.path.join(repo_dir, name)
-    # Check for <name>.code-workspace or #<name>.code-workspace
-    workspace_file = os.path.join(project_path, f"{name}.code-workspace")
-    hash_workspace_file = os.path.join(project_path, f"#{name}.code-workspace")
-    
-    if os.path.exists(workspace_file):
-        return workspace_file
-    elif os.path.exists(hash_workspace_file):
-        return hash_workspace_file
-    
-    return project_path if os.path.exists(project_path) else None
+    candidates = [name]
+    if not name.startswith("JC_"):
+        candidates.append(f"JC_{name}")
+    else:
+        candidates.append(name[3:])
+
+    for cand in candidates:
+        project_path = os.path.join(repo_dir, cand)
+        workspace_file = os.path.join(project_path, f"{cand}.code-workspace")
+        hash_workspace_file = os.path.join(project_path, f"#{cand}.code-workspace")
+        if os.path.exists(workspace_file):
+            return workspace_file
+        elif os.path.exists(hash_workspace_file):
+            return hash_workspace_file
+        if os.path.exists(project_path):
+            return project_path
+
+    return None
 
 def center_window_on_second_monitor(window):
     """Position the tkinter window in the center of the second monitor, or the primary monitor if only one is connected, and show it."""

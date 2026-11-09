@@ -1,3 +1,18 @@
 {
-    "browserToUser": "Chrome" // Edge | Chrome
+    "browserToUser": "Chrome", // Edge | Chrome
+    // Every profile open launches 2 browser windows: Monitor 1 and Monitor 2 (in DIPs).
+    "windowOpenGeometry": [
+        {
+            "x": 18,
+            "y": 24,
+            "width": 871,
+            "height": 1639
+        },
+        {
+            "x": 3090,
+            "y": 24,
+            "width": 2155,
+            "height": 1639
+        }
+    ]
 }

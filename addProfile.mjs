@@ -150,6 +150,8 @@ bm_other = {"children": [], "id": "2", "name": "Other bookmarks", "type": "folde
 bm_synced = {"children": [], "id": "3", "name": "Mobile bookmarks", "type": "folder"}
 bookmarks = {"checksum": "", "roots": {"bookmark_bar": bm_bar, "other": bm_other, "synced": bm_synced}, "version": 1}
 with open(os.path.join(new_profile_path, 'Bookmarks'), 'w', encoding='utf-8') as f: json.dump(bookmarks, f, indent=3)
+prefs = {"browser": {"window_placement": {"bottom": 1663, "left": 18, "maximized": False, "right": 889, "top": 24, "work_area_bottom": 1680, "work_area_left": 0, "work_area_right": 3072, "work_area_top": 0}}}
+with open(os.path.join(new_profile_path, 'Preferences'), 'w', encoding='utf-8') as f: json.dump(prefs, f, separators=(',', ':'))
 with open(local_state_path, 'r', encoding='utf-8') as f: local_state = json.load(f)
 info_entry = {"name": name, "shortcut_name": "", "user_name": "", "managed_user_id": "", "is_omitted_from_profile_list": False}
 local_state.setdefault('profile', {}).setdefault('info_cache', {})[profile_dir_name] = info_entry
@@ -190,13 +192,11 @@ print(profile_dir_name)
     console.log("==========================================================");
     console.log();
 
-    // 6. Launch Chrome with the new profile
+    // 6. Launch Chrome with the new profile via Dashboard.py so both Monitor 1 and Monitor 2 windows open
     console.log(`Launching new profile '${PROFILE_NAME}'...`);
     try {
-      execSync(
-        `start "" "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" --profile-directory="${PROFILE_DIR}" --no-first-run`,
-        { stdio: "ignore" }
-      );
+      const dashboardPy = resolve(__logDir, "Dashboard.py");
+      execSync(`python "${dashboardPy}" "${PROFILE_NAME}"`, { stdio: "ignore" });
     } catch {}
 
     console.log();

@@ -32,12 +32,35 @@
     {
         "name": "Veluro",
         "commandEdge": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 13\"",
-        "commandChrome": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --profile-directory=\"Profile 8\""
+        "commandChrome": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --profile-directory=\"Profile 8\"",
+        "openChrome1": true,
+        "chrome1Urls": [
+            "https://keep.google.com/u/0/#label/Veluro",
+            "https://gemini.google.com/u/1/app/48a9de26548ca915?pli=1"
+        ],
+        "openChrome2": true,
+        "chrome2Urls": [
+            "https://vercel.com/daniels-projects-a55fcfdf/veluro-test/deployments",
+            "https://veluro-test.vercel.app/",
+            "https://vercel.com/daniels-projects-a55fcfdf/veluro/deployments",
+            "https://veluro.com.au/"
+        ],
+        "openJCTheGoodWorkspace": true,
+        "openWorkspace": true
     },
     {
         "name": "habits_together",
         "commandEdge": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 5\"",
-        "commandChrome": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --profile-directory=\"Profile 9\""
+        "commandChrome": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --profile-directory=\"Profile 9\"",
+        "openChrome1": true,
+        "chrome1Urls": [
+            "https://keep.google.com/u/1/#NOTE/1a4Y3GyyjVP1KxH8FFHBIc9OTvy5aPjrKQ3XYJYrFPkGJf7uNJCTrkF5jdYmQgg",
+            "https://gemini.google.com/u/2/app/a12baa8e5bbbe552"
+        ],
+        "openChrome2": true,
+        "chrome2Urls": [],
+        "openJCTheGoodWorkspace": true,
+        "openWorkspace": true
     },
     {
         "name": "MoneyBoys",
