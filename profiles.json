@@ -7,7 +7,15 @@
     {
         "name": "CasellaKitchen",
         "commandEdge": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 999\"",
-        "commandChrome": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --profile-directory=\"Profile 4\""
+        "commandChrome": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --profile-directory=\"Profile 4\"",
+        "openChrome1": true,
+        "chrome1Urls": [
+            "https://vercel.com/mrjames12345s-projects/casella-kitchen/deployments"
+        ],
+        "openChrome2": true,
+        "chrome2Urls": [],
+        "openJCTheGoodWorkspace": true,
+        "openWorkspace": true
     },
     {
         "name": "NGrave",
@@ -22,12 +30,30 @@
     {
         "name": "AIMSInspection",
         "commandEdge": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 8\"",
-        "commandChrome": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --profile-directory=\"Profile 7\""
+        "commandChrome": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --profile-directory=\"Profile 7\"",
+        "openChrome1": true,
+        "chrome1Urls": [
+            "https://vercel.com/aims-engineering/aims-inspection-test/deployments"
+        ],
+        "openChrome2": true,
+        "chrome2Urls": [],
+        "openJCTheGoodWorkspace": true,
+        "openWorkspace": true
     },
     {
         "name": "AIMSProjectManagement",
         "commandEdge": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --profile-directory=\"Profile 8\"",
-        "commandChrome": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --profile-directory=\"Profile 7\""
+        "commandChrome": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --profile-directory=\"Profile 7\"",
+        "openChrome1": true,
+        "chrome1Urls": [],
+        "openChrome2": true,
+        "chrome2Urls": [
+            "https://vercel.com/aims-engineering/aims-project-management-test/deployments",
+            "https://aims-project-management-test.vercel.app/",
+            "https://vercel.com/aims-engineering/aims-project-management/deployments"
+        ],
+        "openJCTheGoodWorkspace": true,
+        "openWorkspace": true
     },
     {
         "name": "Veluro",
